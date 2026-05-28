@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin, BookOpen, User, Star, ArrowRight, PlayCircle } from "lucide-react";
 
@@ -25,9 +25,9 @@ export default function LandingPage() {
             <Link href="/login" className="hidden sm:inline-block text-sm font-medium hover:text-primary transition-colors">
               Log in
             </Link>
-            <Button asChild className="rounded-full px-6">
-              <Link href="/register">Sign Up</Link>
-            </Button>
+            <Link href="/register" className={buttonVariants({ className: "rounded-full px-6" })}>
+              Sign Up
+            </Link>
           </div>
         </div>
       </header>
