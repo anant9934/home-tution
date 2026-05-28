@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo, useEffect } from "react";
+import { Suspense, useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search, Star, MapPin, GraduationCap, Clock, IndianRupee } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { MOCK_TUTORS, SUBJECTS } from "@/lib/mock-data";
 
-export default function TutorsPage() {
+function TutorsContent() {
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
@@ -170,5 +170,13 @@ export default function TutorsPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function TutorsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+      <TutorsContent />
+    </Suspense>
   );
 }
