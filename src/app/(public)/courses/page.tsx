@@ -1,60 +1,88 @@
 import Link from "next/link";
-import { BookOpen, PlayCircle, ArrowRight } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Search, Star, Clock, BookOpen, GraduationCap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
-export default function CoursesPage() {
+export const revalidate = 60;
+
+async function getCourses() {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/courses/public`, {
+      next: { revalidate: 60 }
+    });
+    if (!res.ok) return [];
+    return res.json();
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
+export default async function CoursesPage() {
+  const courses = await getCourses();
+
   return (
     <div className="min-h-screen bg-background">
-      {/* NAVBAR */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="bg-primary text-primary-foreground p-1.5 rounded-lg">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <span className="text-xl font-bold font-heading">Aura</span>
-          </Link>
-          <nav className="hidden md:flex gap-6 items-center text-sm font-medium text-muted-foreground">
-            <Link href="/subjects" className="hover:text-primary transition-colors">Subjects</Link>
-            <Link href="/tutors" className="hover:text-primary transition-colors">Tutors</Link>
-            <Link href="/courses" className="text-primary transition-colors">Courses</Link>
-            <Link href="/about" className="hover:text-primary transition-colors">About</Link>
-          </nav>
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="hidden sm:inline-block text-sm font-medium hover:text-primary transition-colors">
-              Log in
-            </Link>
-            <Link href="/register" className={buttonVariants({ className: "rounded-full px-6" })}>
-              Sign Up
-            </Link>
-          </div>
-        </div>
-      </header>
       
       <main className="container mx-auto px-4 md:px-6 py-12">
-        <h1 className="text-4xl font-bold font-heading mb-4">Interactive Courses</h1>
-        <p className="text-muted-foreground text-lg mb-12">Learn at your own pace with our premium video courses.</p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+          <div>
+            <h1 className="text-4xl font-bold font-heading mb-4">Browse Courses</h1>
+            <p className="text-muted-foreground text-lg max-w-2xl">Learn at your own pace with interactive video courses, assignments, and quizzes curated by experts.</p>
+          </div>
+          
+          <div className="flex w-full md:w-auto items-center gap-2 relative">
+             <Search className="w-5 h-5 absolute left-3 text-muted-foreground" />
+             <Input placeholder="Search courses..." className="pl-10 h-12 w-full md:w-80 rounded-full bg-white shadow-sm" />
+             <Button className="rounded-full h-12 px-6">Search</Button>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="group rounded-2xl border bg-card hover:shadow-md transition-all cursor-pointer overflow-hidden">
-              <div className="aspect-video bg-muted relative flex items-center justify-center">
-                 <PlayCircle className="w-12 h-12 text-primary/40 group-hover:text-primary/70 transition-colors" />
-                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                 <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end text-white">
-                    <span className="text-xs font-medium bg-black/40 px-2 py-1 rounded backdrop-blur-md">12 Lessons</span>
+        {/* FILTERS */}
+        <div className="flex flex-wrap gap-3 mb-10 pb-6 border-b">
+           <Button variant="outline" className="rounded-full bg-white">All Categories</Button>
+           <Button variant="outline" className="rounded-full bg-white border-dashed text-muted-foreground">+ Math</Button>
+           <Button variant="outline" className="rounded-full bg-white border-dashed text-muted-foreground">+ Science</Button>
+           <Button variant="outline" className="rounded-full bg-white border-dashed text-muted-foreground">+ CS</Button>
+           <div className="w-px h-6 bg-border mx-2 self-center"></div>
+           <Button variant="ghost" className="rounded-full text-muted-foreground hover:text-foreground">Level: Beginner</Button>
+           <Button variant="ghost" className="rounded-full text-muted-foreground hover:text-foreground">Popularity</Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {courses.map((course: any) => (
+            <div key={course.id} className="bg-white rounded-3xl border shadow-sm hover:shadow-md transition-shadow overflow-hidden group flex flex-col cursor-pointer">
+               <div className="relative aspect-[4/3] bg-muted overflow-hidden">
+                 <img src={course.image} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                 <div className="absolute top-4 left-4">
+                    <Badge className="bg-white/90 backdrop-blur text-foreground hover:bg-white border-0 shadow-sm">{course.subject}</Badge>
                  </div>
-              </div>
-              <div className="p-5">
-                <h3 className="font-bold text-lg group-hover:text-primary transition-colors">Complete Physics Crash Course</h3>
-                <p className="text-muted-foreground mt-2 text-sm">Cover all essential topics in mechanics and thermodynamics.</p>
-                <div className="mt-4 flex items-center justify-between text-sm font-medium text-primary">
-                  <span>Start Learning</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
+               </div>
+               
+               <div className="p-5 flex-1 flex flex-col">
+                  <div className="flex items-center gap-1 text-xs font-bold text-warning mb-2">
+                     <Star className="w-4 h-4 fill-warning" /> {course.rating} <span className="text-muted-foreground font-normal">({course.students} students)</span>
+                  </div>
+                  
+                  <h3 className="font-bold text-lg font-heading group-hover:text-primary transition-colors line-clamp-2 mb-2">{course.title}</h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{course.description}</p>
+                  
+                  <div className="mt-auto pt-4 border-t flex items-center justify-between">
+                     <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                       <GraduationCap className="w-4 h-4" /> {course.instructor}
+                     </div>
+                     <div className="font-bold text-lg text-primary">{course.price}</div>
+                  </div>
+               </div>
             </div>
           ))}
+
+          {courses.length === 0 && (
+             <div className="col-span-full py-20 text-center">
+               <p className="text-muted-foreground text-lg">No courses found. Check back later!</p>
+             </div>
+          )}
         </div>
       </main>
     </div>
