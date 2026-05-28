@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, IndianRupee, BookOpen, Clock, Calendar as CalendarIcon, CheckCircle2, ChevronRight, Plus } from "lucide-react";
+import { Users, IndianRupee, BookOpen, Clock, Calendar as CalendarIcon, CheckCircle2, ChevronRight, Plus, ClipboardList, MessageSquare } from "lucide-react";
 
 export default function TeacherDashboardPage() {
   return (
