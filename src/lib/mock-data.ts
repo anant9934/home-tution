@@ -169,3 +169,67 @@ export const MOCK_COURSES = [
     level: "Advanced"
   }
 ];
+
+// --- DASHBOARD MOCK DATA ---
+
+export const MOCK_STUDENT_DASHBOARD = {
+  studentName: "Alex Carter",
+  xp: 1450,
+  streak: 12,
+  enrolledCourses: [
+    { id: "calc-101", title: "Mastering Advanced Calculus", progress: 65, nextLesson: "Derivatives Practice", instructor: "Dr. Sarah Jenkins" },
+    { id: "py-intro", title: "Python for Beginners", progress: 30, nextLesson: "Loops and Conditions", instructor: "Arjun Mehta" }
+  ],
+  upcomingClasses: [
+    { id: 1, title: "1-on-1 Math Session", time: "Tomorrow, 4:00 PM", tutor: "Dr. Sarah Jenkins", joinLink: "#" },
+    { id: 2, title: "Group Physics Doubt Clearing", time: "Friday, 6:00 PM", tutor: "Rohit Verma", joinLink: "#" }
+  ],
+  recentAchievements: ["Calculus Quiz Master", "7-Day Streak", "First Code Written"]
+};
+
+export const MOCK_PARENT_DASHBOARD = {
+  childName: "Alex Carter",
+  stats: { attendance: "94%", overallGrade: "A-", pendingFees: "₹4,500", teacherNotesCount: 2 },
+  performance: [
+    { title: "Mathematics", score: 92, color: "success" },
+    { title: "Physics", score: 85, color: "primary" },
+    { title: "Computer Science", score: 96, color: "success" }
+  ],
+  homework: [
+    { title: "Calculus Worksheet 4", subject: "Math", status: "Submitted", isWarning: false },
+    { title: "Python Loops Assignment", subject: "CS", status: "Pending", isWarning: true }
+  ],
+  feedback: [
+    { tutorName: "Dr. Sarah Jenkins", subject: "Math", date: "2026-05-25", note: "Alex has shown great improvement in integration concepts. Keep up the good work!" },
+    { tutorName: "Rohit Verma", subject: "Physics", date: "2026-05-20", note: "Needs a bit more focus during the mechanics problem-solving sessions." }
+  ]
+};
+
+export const MOCK_TEACHER_DASHBOARD = {
+  teacherName: "Dr. Sarah Jenkins",
+  stats: { activeStudents: 45, hoursTaughtThisMonth: 82, earningsThisMonth: "₹65,600", rating: 4.9 },
+  upcomingSchedule: [
+    { id: 101, student: "Alex Carter", subject: "Calculus 1-on-1", time: "Today, 4:00 PM" },
+    { id: 102, student: "Batch A", subject: "JEE Advanced Prep", time: "Today, 6:00 PM" }
+  ],
+  pendingDemoRequests: [
+    { id: 201, student: "Priya Patel", requestedTime: "Tomorrow, 5:00 PM", subject: "Math" },
+    { id: 202, student: "Rahul Sharma", requestedTime: "Thursday, 4:00 PM", subject: "Physics" }
+  ],
+  recentReviews: [
+    { student: "Alex C.", rating: 5, comment: "Best math teacher ever! Complex topics feel so easy now." },
+    { student: "Sneha M.", rating: 5, comment: "Helped me score 95 in my boards." }
+  ]
+};
+
+export const MOCK_ADMIN_DASHBOARD = {
+  stats: { totalRevenue: "₹14.5M", activeStudents: 12450, totalTutors: 850, activeCourses: 120 },
+  pendingTutors: [
+    { id: "pending-1", name: "Ananya Roy", subject: "Biology", appliedDate: "2 Days ago" },
+    { id: "pending-2", name: "Vikram Singh", subject: "Chemistry", appliedDate: "1 Day ago" }
+  ],
+  recentTransactions: [
+    { id: "txn-901", user: "Parent of Alex", amount: "₹4,500", date: "Today", status: "Completed" },
+    { id: "txn-902", user: "Student John", amount: "₹1,500", date: "Yesterday", status: "Completed" }
+  ]
+};
