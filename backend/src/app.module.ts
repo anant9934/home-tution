@@ -10,9 +10,10 @@ import { BookingsModule } from './modules/bookings/bookings.module';
 import { QuizzesModule } from './modules/quizzes/quizzes.module';
 import { AssignmentsModule } from './modules/assignments/assignments.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, StudentsModule, TutorsModule, CoursesModule, BookingsModule, QuizzesModule, AssignmentsModule, PaymentsModule],
+  imports: [AuthModule, UsersModule, StudentsModule, TutorsModule, CoursesModule, BookingsModule, QuizzesModule, AssignmentsModule, PaymentsModule, PrismaModule],
   controllers: [AppController],
   providers: [AppService],
 })
