@@ -2,25 +2,63 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { CalendarCheck, CreditCard, LineChart, MessageSquare, AlertCircle, FileText, Download } from "lucide-react";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
-export default function ParentDashboardPage() {
+async function getDashboardData() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) {
+    redirect("/login");
+  }
+
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/parents/dashboard`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    cache: "no-store"
+  });
+
+  if (!res.ok) {
+    return null;
+  }
+
+  return res.json();
+}
+
+export default async function ParentDashboardPage() {
+  const data = await getDashboardData();
+
+  if (!data) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <h2 className="text-2xl font-bold font-heading mb-2">Oops! Something went wrong.</h2>
+        <p className="text-muted-foreground mb-6">We couldn't load your parent dashboard data.</p>
+        <Button onClick={() => window.location.reload()}>Try Again</Button>
+      </div>
+    );
+  }
+
+  const { childName, stats, performance, homework, feedback } = data;
+
   return (
     <div className="space-y-8 pb-20 lg:pb-8">
       
       <div className="flex justify-between items-end mb-8">
          <div>
             <h1 className="text-3xl font-bold font-heading">Overview</h1>
-            <p className="text-muted-foreground mt-1">Here is how Rahul is doing this week.</p>
+            <p className="text-muted-foreground mt-1">Here is how {childName.split(' ')[0]} is doing this week.</p>
          </div>
       </div>
       
       {/* SUMMARY WIDGETS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
          {[
-           { label: "Attendance", value: "92%", icon: CalendarCheck, color: "text-primary", bg: "bg-primary/10", note: "Good standing" },
-           { label: "Overall Grade", value: "A-", icon: LineChart, color: "text-success", bg: "bg-success/10", note: "Top 15% in class" },
-           { label: "Pending Fees", value: "₹0", icon: CreditCard, color: "text-muted-foreground", bg: "bg-muted", note: "All cleared" },
-           { label: "Teacher Notes", value: "2", icon: MessageSquare, color: "text-warning", bg: "bg-warning/10", note: "Needs review" },
+           { label: "Attendance", value: stats.attendance, icon: CalendarCheck, color: "text-primary", bg: "bg-primary/10", note: "Good standing" },
+           { label: "Overall Grade", value: stats.overallGrade, icon: LineChart, color: "text-success", bg: "bg-success/10", note: "Top 15% in class" },
+           { label: "Pending Fees", value: stats.pendingFees, icon: CreditCard, color: "text-muted-foreground", bg: "bg-muted", note: "All cleared" },
+           { label: "Teacher Notes", value: stats.teacherNotesCount, icon: MessageSquare, color: "text-warning", bg: "bg-warning/10", note: "Needs review" },
          ].map((stat, i) => (
            <Card key={i} className="rounded-2xl border shadow-sm">
              <CardContent className="p-5">
@@ -46,29 +84,15 @@ export default function ParentDashboardPage() {
                <h3 className="font-bold font-heading mb-6">Recent Performance</h3>
                
                <div className="space-y-6">
-                  <div>
-                    <div className="flex justify-between items-end mb-2">
-                      <div className="font-semibold text-sm">Mathematics Test #3</div>
-                      <div className="text-sm font-bold text-success">85%</div>
+                  {performance.map((perf: any, i: number) => (
+                    <div key={i}>
+                      <div className="flex justify-between items-end mb-2">
+                        <div className="font-semibold text-sm">{perf.title}</div>
+                        <div className={`text-sm font-bold text-${perf.color}`}>{perf.score}%</div>
+                      </div>
+                      <Progress value={perf.score} className={`h-2 bg-${perf.color}/20 [&>div]:bg-${perf.color}`} />
                     </div>
-                    <Progress value={85} className="h-2 bg-success/20 [&>div]:bg-success" />
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between items-end mb-2">
-                      <div className="font-semibold text-sm">Physics Mid-Term</div>
-                      <div className="text-sm font-bold text-warning">72%</div>
-                    </div>
-                    <Progress value={72} className="h-2 bg-warning/20 [&>div]:bg-warning" />
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between items-end mb-2">
-                      <div className="font-semibold text-sm">Chemistry Quiz</div>
-                      <div className="text-sm font-bold text-primary">90%</div>
-                    </div>
-                    <Progress value={90} className="h-2 bg-primary/20 [&>div]:bg-primary" />
-                  </div>
+                  ))}
                </div>
                
                <Button variant="outline" className="w-full mt-6 rounded-xl text-sm h-10">View Detailed Report</Button>
@@ -80,23 +104,18 @@ export default function ParentDashboardPage() {
                </h3>
                
                <div className="space-y-4">
-                  <div className="flex items-start gap-4 p-4 border rounded-2xl">
-                     <FileText className="w-8 h-8 text-muted-foreground shrink-0" />
-                     <div className="flex-1">
-                        <h4 className="font-bold text-sm">Trigonometry Assignment</h4>
-                        <p className="text-xs text-muted-foreground mt-1">Mathematics</p>
-                     </div>
-                     <div className="text-xs font-bold text-success bg-success/10 px-2 py-1 rounded-md">Completed</div>
-                  </div>
-                  
-                  <div className="flex items-start gap-4 p-4 border border-warning/30 bg-warning/5 rounded-2xl">
-                     <AlertCircle className="w-8 h-8 text-warning shrink-0" />
-                     <div className="flex-1">
-                        <h4 className="font-bold text-sm text-warning-foreground">Physics Project</h4>
-                        <p className="text-xs text-muted-foreground mt-1">Due tomorrow at 10 AM</p>
-                     </div>
-                     <div className="text-xs font-bold text-warning bg-warning/20 px-2 py-1 rounded-md">Pending</div>
-                  </div>
+                  {homework.map((hw: any, i: number) => (
+                    <div key={i} className={`flex items-start gap-4 p-4 border rounded-2xl ${hw.isWarning ? 'border-warning/30 bg-warning/5' : ''}`}>
+                       {hw.isWarning ? <AlertCircle className="w-8 h-8 text-warning shrink-0" /> : <FileText className="w-8 h-8 text-muted-foreground shrink-0" />}
+                       <div className="flex-1">
+                          <h4 className={`font-bold text-sm ${hw.isWarning ? 'text-warning-foreground' : ''}`}>{hw.title}</h4>
+                          <p className="text-xs text-muted-foreground mt-1">{hw.subject}</p>
+                       </div>
+                       <div className={`text-xs font-bold px-2 py-1 rounded-md ${hw.isWarning ? 'text-warning bg-warning/20' : 'text-success bg-success/10'}`}>
+                         {hw.status}
+                       </div>
+                    </div>
+                  ))}
                </div>
             </div>
             
@@ -109,16 +128,21 @@ export default function ParentDashboardPage() {
                <h3 className="font-bold font-heading mb-4">Teacher Feedback</h3>
                
                <div className="space-y-4 divide-y">
-                  <div className="pt-2 pb-4">
-                     <div className="flex justify-between items-start mb-2">
-                        <div className="font-bold text-sm">Dr. Sarah J. <span className="text-muted-foreground font-normal text-xs ml-2">Math Tutor</span></div>
-                        <span className="text-xs text-muted-foreground">2 days ago</span>
-                     </div>
-                     <p className="text-sm text-muted-foreground leading-relaxed">
-                       Rahul has shown great improvement in Calculus over the last few weeks. He is actively participating in live classes. I recommend spending an extra hour on Integration concepts this weekend.
-                     </p>
-                     <Button variant="link" className="px-0 h-auto text-primary mt-2 text-xs font-semibold">Reply to Dr. Sarah</Button>
-                  </div>
+                  {feedback.map((fb: any, i: number) => (
+                    <div key={i} className="pt-2 pb-4">
+                       <div className="flex justify-between items-start mb-2">
+                          <div className="font-bold text-sm">{fb.tutorName} <span className="text-muted-foreground font-normal text-xs ml-2">{fb.subject}</span></div>
+                          <span className="text-xs text-muted-foreground">{new Date(fb.date).toLocaleDateString()}</span>
+                       </div>
+                       <p className="text-sm text-muted-foreground leading-relaxed">
+                         "{fb.note}"
+                       </p>
+                       <Button variant="link" className="px-0 h-auto text-primary mt-2 text-xs font-semibold">Reply to Teacher</Button>
+                    </div>
+                  ))}
+                  {feedback.length === 0 && (
+                    <div className="text-sm text-muted-foreground pt-4">No recent feedback from teachers.</div>
+                  )}
                </div>
             </div>
             
@@ -129,10 +153,12 @@ export default function ParentDashboardPage() {
                
                <div className="bg-white p-4 rounded-2xl shadow-sm border mb-4 relative z-10 flex justify-between items-center">
                   <div>
-                    <div className="text-xs text-muted-foreground font-medium mb-1">June 2026 Installment</div>
+                    <div className="text-xs text-muted-foreground font-medium mb-1">{new Date(new Date().setMonth(new Date().getMonth() + 1)).toLocaleString('default', { month: 'long', year: 'numeric' })} Installment</div>
                     <div className="font-bold text-lg">₹4,500</div>
                   </div>
-                  <div className="text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded-md">Due: Jun 10</div>
+                  <div className="text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                    Due: {new Date(new Date().setDate(10)).toLocaleDateString('default', { month: 'short', day: 'numeric' })}
+                  </div>
                </div>
                
                <div className="flex gap-3 relative z-10">
