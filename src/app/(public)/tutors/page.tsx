@@ -1,30 +1,54 @@
+"use client";
+
 import Link from "next/link";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Search, Star, MapPin, GraduationCap, Clock, IndianRupee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { MOCK_TUTORS, SUBJECTS } from "@/lib/mock-data";
 
-export const revalidate = 60; // Revalidate every minute
+export default function TutorsPage() {
+  const searchParams = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSubject, setActiveSubject] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<"rating" | "price_asc" | null>(null);
 
-async function getTutors() {
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/tutors/public`, {
-      next: { revalidate: 60 }
-    });
-    if (!res.ok) return [];
-    return res.json();
-  } catch (e) {
-    console.error(e);
-    return [];
-  }
-}
+  useEffect(() => {
+    const subjectParam = searchParams.get("subject");
+    if (subjectParam) setActiveSubject(subjectParam);
+  }, [searchParams]);
 
-export default async function TutorsPage() {
-  const tutors = await getTutors();
+  const filteredTutors = useMemo(() => {
+    let result = [...MOCK_TUTORS];
+
+    // Filter by subject
+    if (activeSubject) {
+      result = result.filter(t => t.subjects.includes(activeSubject));
+    }
+
+    // Search query
+    if (searchQuery.trim() !== "") {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(t => 
+        t.name.toLowerCase().includes(q) || 
+        t.subjects.some(s => s.toLowerCase().includes(q))
+      );
+    }
+
+    // Sort
+    if (sortBy === "rating") {
+      result.sort((a, b) => b.rating - a.rating);
+    } else if (sortBy === "price_asc") {
+      result.sort((a, b) => a.hourlyRate - b.hourlyRate);
+    }
+
+    return result;
+  }, [searchQuery, activeSubject, sortBy]);
 
   return (
     <div className="min-h-screen bg-background">
-      
       <main className="container mx-auto px-4 md:px-6 py-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
@@ -34,24 +58,57 @@ export default async function TutorsPage() {
           
           <div className="flex w-full md:w-auto items-center gap-2 relative">
              <Search className="w-5 h-5 absolute left-3 text-muted-foreground" />
-             <Input placeholder="Search tutors or subjects..." className="pl-10 h-12 w-full md:w-80 rounded-full bg-white shadow-sm" />
+             <Input 
+               placeholder="Search tutors or subjects..." 
+               className="pl-10 h-12 w-full md:w-80 rounded-full bg-white shadow-sm"
+               value={searchQuery}
+               onChange={(e) => setSearchQuery(e.target.value)}
+             />
              <Button className="rounded-full h-12 px-6">Search</Button>
           </div>
         </div>
 
         {/* FILTERS */}
         <div className="flex flex-wrap gap-3 mb-10 pb-6 border-b">
-           <Button variant="outline" className="rounded-full bg-white">All Subjects</Button>
-           <Button variant="outline" className="rounded-full bg-white border-dashed text-muted-foreground">+ Math</Button>
-           <Button variant="outline" className="rounded-full bg-white border-dashed text-muted-foreground">+ Physics</Button>
-           <Button variant="outline" className="rounded-full bg-white border-dashed text-muted-foreground">+ English</Button>
+           <Button 
+             variant={activeSubject === null ? "default" : "outline"} 
+             className="rounded-full bg-white hover:bg-muted"
+             onClick={() => setActiveSubject(null)}
+           >
+             All Subjects
+           </Button>
+           
+           {SUBJECTS.slice(0, 4).map(sub => (
+             <Button 
+               key={sub}
+               variant={activeSubject === sub ? "default" : "outline"} 
+               className="rounded-full bg-white border-dashed text-muted-foreground"
+               onClick={() => setActiveSubject(sub)}
+             >
+               + {sub}
+             </Button>
+           ))}
+           
            <div className="w-px h-6 bg-border mx-2 self-center"></div>
-           <Button variant="ghost" className="rounded-full text-muted-foreground hover:text-foreground">Price: Low to High</Button>
-           <Button variant="ghost" className="rounded-full text-muted-foreground hover:text-foreground">Highest Rated</Button>
+           
+           <Button 
+             variant={sortBy === "price_asc" ? "secondary" : "ghost"} 
+             className="rounded-full text-muted-foreground hover:text-foreground"
+             onClick={() => setSortBy(sortBy === "price_asc" ? null : "price_asc")}
+           >
+             Price: Low to High
+           </Button>
+           <Button 
+             variant={sortBy === "rating" ? "secondary" : "ghost"} 
+             className="rounded-full text-muted-foreground hover:text-foreground"
+             onClick={() => setSortBy(sortBy === "rating" ? null : "rating")}
+           >
+             Highest Rated
+           </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {tutors.map((tutor: any) => (
+          {filteredTutors.map((tutor) => (
             <div key={tutor.id} className="bg-white rounded-3xl border shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col group cursor-pointer">
               <div className="p-6 pb-0 flex items-start justify-between">
                  <div className="flex gap-4">
@@ -68,7 +125,7 @@ export default async function TutorsPage() {
               
               <div className="px-6 py-4 mt-2">
                  <div className="flex flex-wrap gap-2 mb-4">
-                    {tutor.subjects.map((sub: string, i: number) => (
+                    {tutor.subjects.map((sub, i) => (
                        <Badge key={i} variant="outline" className="bg-primary/5 border-primary/20 text-primary">{sub}</Badge>
                     ))}
                  </div>
@@ -88,7 +145,7 @@ export default async function TutorsPage() {
                     </div>
                     <div className="flex items-center gap-2 font-bold text-foreground">
                        <IndianRupee className="w-4 h-4 text-muted-foreground" />
-                       {tutor.hourlyRate}/hr
+                       ₹{tutor.hourlyRate}/hr
                     </div>
                  </div>
               </div>
@@ -97,14 +154,17 @@ export default async function TutorsPage() {
                  <Link href={`/tutors/${tutor.id}`} className="flex-1">
                    <Button variant="outline" className="w-full rounded-xl">View Profile</Button>
                  </Link>
-                 <Button className="flex-1 rounded-xl shadow-sm">Book Trial</Button>
+                 <Link href={`/tutors/${tutor.id}`} className="flex-1">
+                   <Button className="w-full rounded-xl shadow-sm">Book Trial</Button>
+                 </Link>
               </div>
             </div>
           ))}
 
-          {tutors.length === 0 && (
+          {filteredTutors.length === 0 && (
              <div className="col-span-full py-20 text-center">
-               <p className="text-muted-foreground text-lg">No tutors found. Check back later!</p>
+               <p className="text-muted-foreground text-lg mb-4">No tutors found matching your search.</p>
+               <Button onClick={() => { setSearchQuery(""); setActiveSubject(null); setSortBy(null); }}>Clear Filters</Button>
              </div>
           )}
         </div>

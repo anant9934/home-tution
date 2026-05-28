@@ -37,14 +37,14 @@ export default function SubjectsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {['Mathematics', 'Physics', 'Chemistry', 'Biology', 'English', 'Computer Science'].map((subject) => (
-            <div key={subject} className="p-6 rounded-2xl border bg-card hover:shadow-md transition-all group cursor-pointer">
+            <Link href={`/tutors?subject=${subject}`} key={subject} className="p-6 rounded-2xl border bg-card hover:shadow-md transition-all group cursor-pointer block">
               <h3 className="text-2xl font-bold font-heading group-hover:text-primary transition-colors">{subject}</h3>
               <p className="text-muted-foreground mt-2">Master {subject.toLowerCase()} with our top-rated instructors.</p>
               <div className="mt-6 flex items-center justify-between text-sm font-medium text-primary">
                 <span>View Tutors</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </main>

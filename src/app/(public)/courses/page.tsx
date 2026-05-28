@@ -1,30 +1,51 @@
+"use client";
+
 import Link from "next/link";
-import { Search, Star, Clock, BookOpen, GraduationCap } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Search, Star, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { MOCK_COURSES, SUBJECTS } from "@/lib/mock-data";
 
-export const revalidate = 60;
+export default function CoursesPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSubject, setActiveSubject] = useState<string | null>(null);
+  const [activeLevel, setActiveLevel] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<"popularity" | null>(null);
 
-async function getCourses() {
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/courses/public`, {
-      next: { revalidate: 60 }
-    });
-    if (!res.ok) return [];
-    return res.json();
-  } catch (e) {
-    console.error(e);
-    return [];
-  }
-}
+  const filteredCourses = useMemo(() => {
+    let result = [...MOCK_COURSES];
 
-export default async function CoursesPage() {
-  const courses = await getCourses();
+    // Filter by subject
+    if (activeSubject) {
+      result = result.filter(c => c.subject === activeSubject);
+    }
+
+    // Filter by level
+    if (activeLevel) {
+      result = result.filter(c => c.level === activeLevel);
+    }
+
+    // Search query
+    if (searchQuery.trim() !== "") {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(c => 
+        c.title.toLowerCase().includes(q) || 
+        c.description.toLowerCase().includes(q)
+      );
+    }
+
+    // Sort
+    if (sortBy === "popularity") {
+      result.sort((a, b) => b.students - a.students);
+    }
+
+    return result;
+  }, [searchQuery, activeSubject, activeLevel, sortBy]);
 
   return (
     <div className="min-h-screen bg-background">
-      
       <main className="container mx-auto px-4 md:px-6 py-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
@@ -34,24 +55,57 @@ export default async function CoursesPage() {
           
           <div className="flex w-full md:w-auto items-center gap-2 relative">
              <Search className="w-5 h-5 absolute left-3 text-muted-foreground" />
-             <Input placeholder="Search courses..." className="pl-10 h-12 w-full md:w-80 rounded-full bg-white shadow-sm" />
+             <Input 
+               placeholder="Search courses..." 
+               className="pl-10 h-12 w-full md:w-80 rounded-full bg-white shadow-sm"
+               value={searchQuery}
+               onChange={(e) => setSearchQuery(e.target.value)}
+             />
              <Button className="rounded-full h-12 px-6">Search</Button>
           </div>
         </div>
 
         {/* FILTERS */}
         <div className="flex flex-wrap gap-3 mb-10 pb-6 border-b">
-           <Button variant="outline" className="rounded-full bg-white">All Categories</Button>
-           <Button variant="outline" className="rounded-full bg-white border-dashed text-muted-foreground">+ Math</Button>
-           <Button variant="outline" className="rounded-full bg-white border-dashed text-muted-foreground">+ Science</Button>
-           <Button variant="outline" className="rounded-full bg-white border-dashed text-muted-foreground">+ CS</Button>
+           <Button 
+             variant={activeSubject === null ? "default" : "outline"} 
+             className="rounded-full bg-white hover:bg-muted"
+             onClick={() => setActiveSubject(null)}
+           >
+             All Categories
+           </Button>
+           
+           {SUBJECTS.slice(0, 3).map(sub => (
+             <Button 
+               key={sub}
+               variant={activeSubject === sub ? "default" : "outline"} 
+               className="rounded-full bg-white border-dashed text-muted-foreground"
+               onClick={() => setActiveSubject(sub)}
+             >
+               + {sub}
+             </Button>
+           ))}
+           
            <div className="w-px h-6 bg-border mx-2 self-center"></div>
-           <Button variant="ghost" className="rounded-full text-muted-foreground hover:text-foreground">Level: Beginner</Button>
-           <Button variant="ghost" className="rounded-full text-muted-foreground hover:text-foreground">Popularity</Button>
+           
+           <Button 
+             variant={activeLevel === "Beginner" ? "secondary" : "ghost"} 
+             className="rounded-full text-muted-foreground hover:text-foreground"
+             onClick={() => setActiveLevel(activeLevel === "Beginner" ? null : "Beginner")}
+           >
+             Level: Beginner
+           </Button>
+           <Button 
+             variant={sortBy === "popularity" ? "secondary" : "ghost"} 
+             className="rounded-full text-muted-foreground hover:text-foreground"
+             onClick={() => setSortBy(sortBy === "popularity" ? null : "popularity")}
+           >
+             Popularity
+           </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {courses.map((course: any) => (
+          {filteredCourses.map((course) => (
             <div key={course.id} className="bg-white rounded-3xl border shadow-sm hover:shadow-md transition-shadow overflow-hidden group flex flex-col cursor-pointer">
                <div className="relative aspect-[4/3] bg-muted overflow-hidden">
                  <img src={course.image} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -72,15 +126,16 @@ export default async function CoursesPage() {
                      <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
                        <GraduationCap className="w-4 h-4" /> {course.instructor}
                      </div>
-                     <div className="font-bold text-lg text-primary">{course.price}</div>
+                     <div className="font-bold text-lg text-primary">₹{course.price}</div>
                   </div>
                </div>
             </div>
           ))}
 
-          {courses.length === 0 && (
+          {filteredCourses.length === 0 && (
              <div className="col-span-full py-20 text-center">
-               <p className="text-muted-foreground text-lg">No courses found. Check back later!</p>
+               <p className="text-muted-foreground text-lg mb-4">No courses found matching your criteria.</p>
+               <Button onClick={() => { setSearchQuery(""); setActiveSubject(null); setActiveLevel(null); setSortBy(null); }}>Clear Filters</Button>
              </div>
           )}
         </div>
