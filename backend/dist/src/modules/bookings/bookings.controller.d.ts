@@ -1,12 +1,296 @@
 import { BookingsService } from './bookings.service';
-import { CreateBookingDto } from './dto/create-booking.dto';
-import { UpdateBookingDto } from './dto/update-booking.dto';
+import { CreateBookingDto, UpdateBookingStatusDto } from './dto/create-booking.dto';
 export declare class BookingsController {
     private readonly bookingsService;
     constructor(bookingsService: BookingsService);
-    create(createBookingDto: CreateBookingDto): string;
-    findAll(): string;
-    findOne(id: string): string;
-    update(id: string, updateBookingDto: UpdateBookingDto): string;
-    remove(id: string): string;
+    create(req: any, dto: CreateBookingDto): Promise<{
+        classSession: {
+            id: string;
+            bookingId: string;
+            startedAt: Date | null;
+            endedAt: Date | null;
+            recordingUrl: string | null;
+            attendanceStatus: string | null;
+        } | null;
+        student: {
+            user: {
+                email: string;
+                phone: string | null;
+                name: string;
+            };
+        } & {
+            id: string;
+            class: string;
+            board: string;
+            schoolName: string | null;
+            dateOfBirth: Date | null;
+            joiningDate: Date;
+            address: string | null;
+            userId: string;
+            parentId: string | null;
+            assignedTutorId: string | null;
+        };
+        tutor: {
+            user: {
+                email: string;
+                name: string;
+            };
+        } & {
+            id: string;
+            isVerified: boolean;
+            userId: string;
+            bio: string | null;
+            experienceYears: number;
+            qualification: string | null;
+            hourlyRate: number;
+            languages: string[];
+            subjects: string[];
+            teachingMode: string;
+            rating: number;
+            totalReviews: number;
+            verificationStatus: string;
+            introVideoUrl: string | null;
+        };
+    } & {
+        id: string;
+        status: import("src/generated/prisma").$Enums.BookingStatus;
+        duration: number;
+        tutorId: string;
+        scheduledAt: Date;
+        bookingType: string;
+        meetingLink: string | null;
+        studentId: string;
+        paymentStatus: string;
+    }>;
+    getMyBookings(req: any, status?: string): Promise<({
+        classSession: {
+            id: string;
+            bookingId: string;
+            startedAt: Date | null;
+            endedAt: Date | null;
+            recordingUrl: string | null;
+            attendanceStatus: string | null;
+        } | null;
+        tutor: {
+            user: {
+                email: string;
+                name: string;
+                avatarUrl: string | null;
+            };
+        } & {
+            id: string;
+            isVerified: boolean;
+            userId: string;
+            bio: string | null;
+            experienceYears: number;
+            qualification: string | null;
+            hourlyRate: number;
+            languages: string[];
+            subjects: string[];
+            teachingMode: string;
+            rating: number;
+            totalReviews: number;
+            verificationStatus: string;
+            introVideoUrl: string | null;
+        };
+    } & {
+        id: string;
+        status: import("src/generated/prisma").$Enums.BookingStatus;
+        duration: number;
+        tutorId: string;
+        scheduledAt: Date;
+        bookingType: string;
+        meetingLink: string | null;
+        studentId: string;
+        paymentStatus: string;
+    })[]>;
+    cancel(id: string, req: any): Promise<{
+        id: string;
+        status: import("src/generated/prisma").$Enums.BookingStatus;
+        duration: number;
+        tutorId: string;
+        scheduledAt: Date;
+        bookingType: string;
+        meetingLink: string | null;
+        studentId: string;
+        paymentStatus: string;
+    }>;
+    getTutorBookings(req: any, status?: string): Promise<({
+        classSession: {
+            id: string;
+            bookingId: string;
+            startedAt: Date | null;
+            endedAt: Date | null;
+            recordingUrl: string | null;
+            attendanceStatus: string | null;
+        } | null;
+        student: {
+            user: {
+                email: string;
+                phone: string | null;
+                name: string;
+                avatarUrl: string | null;
+            };
+        } & {
+            id: string;
+            class: string;
+            board: string;
+            schoolName: string | null;
+            dateOfBirth: Date | null;
+            joiningDate: Date;
+            address: string | null;
+            userId: string;
+            parentId: string | null;
+            assignedTutorId: string | null;
+        };
+    } & {
+        id: string;
+        status: import("src/generated/prisma").$Enums.BookingStatus;
+        duration: number;
+        tutorId: string;
+        scheduledAt: Date;
+        bookingType: string;
+        meetingLink: string | null;
+        studentId: string;
+        paymentStatus: string;
+    })[]>;
+    updateStatus(id: string, req: any, dto: UpdateBookingStatusDto): Promise<{
+        id: string;
+        status: import("src/generated/prisma").$Enums.BookingStatus;
+        duration: number;
+        tutorId: string;
+        scheduledAt: Date;
+        bookingType: string;
+        meetingLink: string | null;
+        studentId: string;
+        paymentStatus: string;
+    }>;
+    startSession(id: string, req: any): Promise<{
+        id: string;
+        bookingId: string;
+        startedAt: Date | null;
+        endedAt: Date | null;
+        recordingUrl: string | null;
+        attendanceStatus: string | null;
+    }>;
+    endSession(id: string, req: any, recordingUrl?: string): Promise<{
+        id: string;
+        bookingId: string;
+        startedAt: Date | null;
+        endedAt: Date | null;
+        recordingUrl: string | null;
+        attendanceStatus: string | null;
+    }>;
+    getAllBookings(status?: string, page?: string, limit?: string): Promise<{
+        data: ({
+            student: {
+                user: {
+                    name: string;
+                };
+            } & {
+                id: string;
+                class: string;
+                board: string;
+                schoolName: string | null;
+                dateOfBirth: Date | null;
+                joiningDate: Date;
+                address: string | null;
+                userId: string;
+                parentId: string | null;
+                assignedTutorId: string | null;
+            };
+            tutor: {
+                user: {
+                    name: string;
+                };
+            } & {
+                id: string;
+                isVerified: boolean;
+                userId: string;
+                bio: string | null;
+                experienceYears: number;
+                qualification: string | null;
+                hourlyRate: number;
+                languages: string[];
+                subjects: string[];
+                teachingMode: string;
+                rating: number;
+                totalReviews: number;
+                verificationStatus: string;
+                introVideoUrl: string | null;
+            };
+        } & {
+            id: string;
+            status: import("src/generated/prisma").$Enums.BookingStatus;
+            duration: number;
+            tutorId: string;
+            scheduledAt: Date;
+            bookingType: string;
+            meetingLink: string | null;
+            studentId: string;
+            paymentStatus: string;
+        })[];
+        total: number;
+        page: number;
+        limit: number;
+    }>;
+    getOne(id: string): Promise<{
+        classSession: {
+            id: string;
+            bookingId: string;
+            startedAt: Date | null;
+            endedAt: Date | null;
+            recordingUrl: string | null;
+            attendanceStatus: string | null;
+        } | null;
+        student: {
+            user: {
+                email: string;
+                phone: string | null;
+                name: string;
+            };
+        } & {
+            id: string;
+            class: string;
+            board: string;
+            schoolName: string | null;
+            dateOfBirth: Date | null;
+            joiningDate: Date;
+            address: string | null;
+            userId: string;
+            parentId: string | null;
+            assignedTutorId: string | null;
+        };
+        tutor: {
+            user: {
+                email: string;
+                name: string;
+            };
+        } & {
+            id: string;
+            isVerified: boolean;
+            userId: string;
+            bio: string | null;
+            experienceYears: number;
+            qualification: string | null;
+            hourlyRate: number;
+            languages: string[];
+            subjects: string[];
+            teachingMode: string;
+            rating: number;
+            totalReviews: number;
+            verificationStatus: string;
+            introVideoUrl: string | null;
+        };
+    } & {
+        id: string;
+        status: import("src/generated/prisma").$Enums.BookingStatus;
+        duration: number;
+        tutorId: string;
+        scheduledAt: Date;
+        bookingType: string;
+        meetingLink: string | null;
+        studentId: string;
+        paymentStatus: string;
+    }>;
 }

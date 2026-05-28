@@ -9,51 +9,54 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CreateCourseDto = void 0;
+exports.CreateLessonDto = exports.CreateChapterDto = void 0;
 const class_validator_1 = require("class-validator");
-class CreateCourseDto {
+class CreateChapterDto {
     title;
-    description;
-    subject;
-    class;
-    board;
-    thumbnail;
-    isPublished;
+    order;
 }
-exports.CreateCourseDto = CreateCourseDto;
+exports.CreateChapterDto = CreateChapterDto;
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
-], CreateCourseDto.prototype, "title", void 0);
+], CreateChapterDto.prototype, "title", void 0);
+__decorate([
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    __metadata("design:type", Number)
+], CreateChapterDto.prototype, "order", void 0);
+class CreateLessonDto {
+    title;
+    videoUrl;
+    notesUrl;
+    duration;
+    order;
+}
+exports.CreateLessonDto = CreateLessonDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateLessonDto.prototype, "title", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
-], CreateCourseDto.prototype, "description", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    __metadata("design:type", String)
-], CreateCourseDto.prototype, "subject", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    __metadata("design:type", String)
-], CreateCourseDto.prototype, "class", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    __metadata("design:type", String)
-], CreateCourseDto.prototype, "board", void 0);
+], CreateLessonDto.prototype, "videoUrl", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
-], CreateCourseDto.prototype, "thumbnail", void 0);
+], CreateLessonDto.prototype, "notesUrl", void 0);
 __decorate([
-    (0, class_validator_1.IsBoolean)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", Boolean)
-], CreateCourseDto.prototype, "isPublished", void 0);
-//# sourceMappingURL=create-course.dto.js.map
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    __metadata("design:type", Number)
+], CreateLessonDto.prototype, "duration", void 0);
+__decorate([
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    __metadata("design:type", Number)
+], CreateLessonDto.prototype, "order", void 0);
+//# sourceMappingURL=create-chapter.dto.js.map

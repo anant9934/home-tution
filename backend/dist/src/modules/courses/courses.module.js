@@ -10,13 +10,16 @@ exports.CoursesModule = void 0;
 const common_1 = require("@nestjs/common");
 const courses_service_1 = require("./courses.service");
 const courses_controller_1 = require("./courses.controller");
+const prisma_module_1 = require("../../prisma/prisma.module");
 let CoursesModule = class CoursesModule {
 };
 exports.CoursesModule = CoursesModule;
 exports.CoursesModule = CoursesModule = __decorate([
     (0, common_1.Module)({
+        imports: [prisma_module_1.PrismaModule],
         controllers: [courses_controller_1.CoursesController],
         providers: [courses_service_1.CoursesService],
+        exports: [courses_service_1.CoursesService],
     })
 ], CoursesModule);
 //# sourceMappingURL=courses.module.js.map

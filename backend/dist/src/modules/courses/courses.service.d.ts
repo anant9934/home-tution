@@ -1,9 +1,197 @@
+import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCourseDto } from './dto/create-course.dto';
-import { UpdateCourseDto } from './dto/update-course.dto';
+import { CreateChapterDto, CreateLessonDto } from './dto/create-chapter.dto';
 export declare class CoursesService {
-    create(createCourseDto: CreateCourseDto): string;
-    findAll(): string;
-    findOne(id: number): string;
-    update(id: number, updateCourseDto: UpdateCourseDto): string;
-    remove(id: number): string;
+    private readonly prisma;
+    constructor(prisma: PrismaService);
+    createCourse(tutorUserId: string, dto: CreateCourseDto): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        class: string;
+        board: string;
+        title: string;
+        description: string | null;
+        subject: string;
+        thumbnail: string | null;
+        isPublished: boolean;
+        createdBy: string;
+    }>;
+    findAllCourses(filters: {
+        subject?: string;
+        class?: string;
+        board?: string;
+        isPublished?: boolean;
+    }): Promise<({
+        _count: {
+            chapters: number;
+            assignments: number;
+            quizzes: number;
+        };
+    } & {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        class: string;
+        board: string;
+        title: string;
+        description: string | null;
+        subject: string;
+        thumbnail: string | null;
+        isPublished: boolean;
+        createdBy: string;
+    })[]>;
+    findCourseById(id: string): Promise<{
+        chapters: ({
+            lessons: {
+                id: string;
+                title: string;
+                order: number;
+                videoUrl: string | null;
+                notesUrl: string | null;
+                duration: number;
+                chapterId: string;
+            }[];
+        } & {
+            id: string;
+            title: string;
+            order: number;
+            courseId: string;
+        })[];
+        assignments: {
+            id: string;
+            title: string;
+            description: string | null;
+            createdBy: string;
+            deadline: Date;
+            courseId: string;
+            maxMarks: number;
+            attachmentUrl: string | null;
+        }[];
+        quizzes: {
+            id: string;
+            title: string;
+            duration: number;
+            createdBy: string;
+            startTime: Date | null;
+            courseId: string;
+            totalMarks: number;
+            endTime: Date | null;
+        }[];
+    } & {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        class: string;
+        board: string;
+        title: string;
+        description: string | null;
+        subject: string;
+        thumbnail: string | null;
+        isPublished: boolean;
+        createdBy: string;
+    }>;
+    updateCourse(id: string, tutorUserId: string, dto: Partial<CreateCourseDto>): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        class: string;
+        board: string;
+        title: string;
+        description: string | null;
+        subject: string;
+        thumbnail: string | null;
+        isPublished: boolean;
+        createdBy: string;
+    }>;
+    publishCourse(id: string, tutorUserId: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        class: string;
+        board: string;
+        title: string;
+        description: string | null;
+        subject: string;
+        thumbnail: string | null;
+        isPublished: boolean;
+        createdBy: string;
+    }>;
+    deleteCourse(id: string, tutorUserId: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        class: string;
+        board: string;
+        title: string;
+        description: string | null;
+        subject: string;
+        thumbnail: string | null;
+        isPublished: boolean;
+        createdBy: string;
+    }>;
+    createChapter(courseId: string, dto: CreateChapterDto): Promise<{
+        id: string;
+        title: string;
+        order: number;
+        courseId: string;
+    }>;
+    updateChapter(chapterId: string, dto: Partial<CreateChapterDto>): Promise<{
+        id: string;
+        title: string;
+        order: number;
+        courseId: string;
+    }>;
+    deleteChapter(chapterId: string): Promise<{
+        id: string;
+        title: string;
+        order: number;
+        courseId: string;
+    }>;
+    createLesson(chapterId: string, dto: CreateLessonDto): Promise<{
+        id: string;
+        title: string;
+        order: number;
+        videoUrl: string | null;
+        notesUrl: string | null;
+        duration: number;
+        chapterId: string;
+    }>;
+    updateLesson(lessonId: string, dto: Partial<CreateLessonDto>): Promise<{
+        id: string;
+        title: string;
+        order: number;
+        videoUrl: string | null;
+        notesUrl: string | null;
+        duration: number;
+        chapterId: string;
+    }>;
+    deleteLesson(lessonId: string): Promise<{
+        id: string;
+        title: string;
+        order: number;
+        videoUrl: string | null;
+        notesUrl: string | null;
+        duration: number;
+        chapterId: string;
+    }>;
+    getMyCourses(tutorUserId: string): Promise<({
+        _count: {
+            chapters: number;
+            assignments: number;
+            quizzes: number;
+        };
+    } & {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        class: string;
+        board: string;
+        title: string;
+        description: string | null;
+        subject: string;
+        thumbnail: string | null;
+        isPublished: boolean;
+        createdBy: string;
+    })[]>;
 }
