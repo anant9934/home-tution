@@ -184,6 +184,10 @@ export const MOCK_STUDENT_DASHBOARD = {
     { id: 1, title: "1-on-1 Math Session", time: "Tomorrow, 4:00 PM", tutor: "Dr. Sarah Jenkins", joinLink: "#" },
     { id: 2, title: "Group Physics Doubt Clearing", time: "Friday, 6:00 PM", tutor: "Rohit Verma", joinLink: "#" }
   ],
+  pendingTasks: [
+    { id: "task-1", title: "Calculus Derivatives Quiz", type: "Quiz", subject: "Mathematics", due: "Today, 11:59 PM" },
+    { id: "task-2", title: "Read Chapter 4: Loops", type: "Reading", subject: "Computer Science", due: "Tomorrow" }
+  ],
   recentAchievements: ["Calculus Quiz Master", "7-Day Streak", "First Code Written"]
 };
 
