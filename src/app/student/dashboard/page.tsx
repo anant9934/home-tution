@@ -2,8 +2,48 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PlayCircle, Clock, Calendar as CalendarIcon, Flame, Trophy, ArrowRight, CheckCircle2 } from "lucide-react";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
-export default function StudentDashboardPage() {
+async function getDashboardData() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+
+  if (!token) {
+    redirect("/login");
+  }
+
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/students/dashboard`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    cache: "no-store"
+  });
+
+  if (!res.ok) {
+    return null;
+  }
+
+  return res.json();
+}
+
+export default async function StudentDashboardPage() {
+  const data = await getDashboardData();
+
+  if (!data) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <h2 className="text-2xl font-bold font-heading mb-2">Oops! Something went wrong.</h2>
+        <p className="text-muted-foreground mb-6">We couldn't load your dashboard data.</p>
+        <Button onClick={() => window.location.reload()}>Try Again</Button>
+      </div>
+    );
+  }
+
+  const { student, stats, schedule, leaderboard, activeCourses, pendingTasks } = data;
+
+  const todayClassesCount = schedule.filter((s: any) => new Date(s.time).toDateString() === new Date().toDateString()).length;
+
   return (
     <div className="space-y-8 pb-20 lg:pb-8">
       
@@ -15,11 +55,15 @@ export default function StudentDashboardPage() {
             <div className="relative z-10 max-w-md">
                <h2 className="text-2xl md:text-3xl font-bold font-heading mb-2">Ready to crush it today?</h2>
                <p className="text-primary-light/80 mb-6 text-sm md:text-base">
-                 You have 2 classes and 1 quiz scheduled for today. Keep up the great work!
+                 You have {todayClassesCount} classes scheduled for today. Keep up the great work!
                </p>
-               <Button variant="secondary" className="rounded-xl font-bold border-0 shadow-sm text-primary">
-                  Join Next Class
-               </Button>
+               {schedule.length > 0 && (
+                 <a href={schedule[0]?.meetingLink || "#"} target="_blank" rel="noreferrer">
+                   <Button variant="secondary" className="rounded-xl font-bold border-0 shadow-sm text-primary">
+                      Join Next Class
+                   </Button>
+                 </a>
+               )}
             </div>
          </div>
          
@@ -30,15 +74,15 @@ export default function StudentDashboardPage() {
             </div>
             
             <div className="flex items-end gap-3 mb-4">
-              <div className="text-4xl font-bold font-heading">4<span className="text-2xl text-muted-foreground font-normal">/5</span></div>
+              <div className="text-4xl font-bold font-heading">{stats.currentStreak}<span className="text-2xl text-muted-foreground font-normal">/{stats.weeklyGoal}</span></div>
               <div className="text-sm text-muted-foreground mb-1">days streak</div>
             </div>
             
             <div className="flex justify-between gap-1 mt-auto">
                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
                  <div key={i} className="flex flex-col items-center gap-2">
-                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${i < 4 ? 'bg-success text-white shadow-sm shadow-success/30' : (i === 4 ? 'bg-primary-light border-2 border-primary text-primary' : 'bg-muted text-muted-foreground')}`}>
-                      {i < 4 ? <CheckCircle2 className="w-4 h-4" /> : day}
+                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${i < stats.currentStreak ? 'bg-success text-white shadow-sm shadow-success/30' : (i === stats.currentStreak ? 'bg-primary-light border-2 border-primary text-primary' : 'bg-muted text-muted-foreground')}`}>
+                      {i < stats.currentStreak ? <CheckCircle2 className="w-4 h-4" /> : day}
                    </div>
                  </div>
                ))}
@@ -60,41 +104,31 @@ export default function StudentDashboardPage() {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                 <Card className="rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow group cursor-pointer">
-                    <div className="aspect-video bg-muted relative">
-                      <div className="absolute inset-0 bg-primary/5 flex items-center justify-center">
-                         <PlayCircle className="w-12 h-12 text-primary/40 group-hover:scale-110 transition-transform duration-500" />
+                 {activeCourses.map((course: any, idx: number) => (
+                   <Card key={course.id} className="rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow group cursor-pointer">
+                      <div className="aspect-video bg-muted relative">
+                        <div className={`absolute inset-0 ${idx % 2 === 0 ? 'bg-primary/5' : 'bg-success/5'} flex items-center justify-center`}>
+                           <PlayCircle className={`w-12 h-12 ${idx % 2 === 0 ? 'text-primary/40' : 'text-success/40'} group-hover:scale-110 transition-transform duration-500`} />
+                        </div>
                       </div>
-                      <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-md font-medium">12:45 left</div>
-                    </div>
-                    <CardContent className="p-5">
-                      <div className="text-xs text-primary font-bold mb-1 uppercase tracking-wider">Physics</div>
-                      <h4 className="font-bold text-lg mb-4 line-clamp-1 group-hover:text-primary transition-colors">Kinematics: Projectile Motion</h4>
-                      <Progress value={65} className="h-2 mb-2" />
-                      <div className="flex justify-between text-xs text-muted-foreground font-medium">
-                        <span>65% Complete</span>
-                        <span>Part 3 of 8</span>
-                      </div>
-                    </CardContent>
-                 </Card>
+                      <CardContent className="p-5">
+                        <div className={`text-xs ${idx % 2 === 0 ? 'text-primary' : 'text-success'} font-bold mb-1 uppercase tracking-wider`}>{course.subject}</div>
+                        <h4 className="font-bold text-lg mb-4 line-clamp-1 group-hover:text-primary transition-colors">{course.title}</h4>
+                        <Progress value={course.progress} className="h-2 mb-2" />
+                        <div className="flex justify-between text-xs text-muted-foreground font-medium">
+                          <span>{course.progress}% Complete</span>
+                          <span>Part {course.completedParts} of {course.totalParts}</span>
+                        </div>
+                      </CardContent>
+                   </Card>
+                 ))}
                  
-                 <Card className="rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow group cursor-pointer">
-                    <div className="aspect-video bg-muted relative">
-                      <div className="absolute inset-0 bg-success/5 flex items-center justify-center">
-                         <PlayCircle className="w-12 h-12 text-success/40 group-hover:scale-110 transition-transform duration-500" />
-                      </div>
-                      <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-md font-medium">45:00 left</div>
-                    </div>
-                    <CardContent className="p-5">
-                      <div className="text-xs text-success font-bold mb-1 uppercase tracking-wider">Mathematics</div>
-                      <h4 className="font-bold text-lg mb-4 line-clamp-1 group-hover:text-primary transition-colors">Integration & Applications</h4>
-                      <Progress value={12} className="h-2 mb-2" />
-                      <div className="flex justify-between text-xs text-muted-foreground font-medium">
-                        <span>12% Complete</span>
-                        <span>Part 1 of 12</span>
-                      </div>
-                    </CardContent>
-                 </Card>
+                 {activeCourses.length === 0 && (
+                   <div className="col-span-2 p-8 border rounded-2xl border-dashed text-center">
+                     <p className="text-muted-foreground">You are not enrolled in any courses yet.</p>
+                     <Button className="mt-4" variant="outline">Browse Courses</Button>
+                   </div>
+                 )}
               </div>
             </section>
             
@@ -106,34 +140,44 @@ export default function StudentDashboardPage() {
               
               <div className="bg-white rounded-3xl border shadow-sm overflow-hidden">
                 <div className="divide-y">
-                   {[
-                     { time: "10:00 AM", title: "Advanced Calculus Live Session", tutor: "Dr. Sarah J.", type: "Live Class", status: "Completed" },
-                     { time: "04:00 PM", title: "Organic Chemistry Revision", tutor: "Prof. Arvind", type: "1-on-1 Tuition", status: "Upcoming" },
-                     { time: "07:00 PM", title: "Physics Weekly Quiz", tutor: "System", type: "Test", status: "Pending" }
-                   ].map((item, i) => (
-                     <div key={i} className="p-5 flex items-center gap-4 hover:bg-muted/30 transition-colors">
-                        <div className="w-20 text-center shrink-0">
-                           <div className="text-sm font-bold">{item.time.split(' ')[0]}</div>
-                           <div className="text-xs text-muted-foreground">{item.time.split(' ')[1]}</div>
-                        </div>
-                        <div className="w-1 h-12 rounded-full bg-muted shrink-0 relative overflow-hidden">
-                           <div className={`absolute inset-0 ${item.status === 'Completed' ? 'bg-success' : (item.status === 'Upcoming' ? 'bg-primary' : 'bg-transparent')}`}></div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                           <h4 className="font-bold text-base truncate">{item.title}</h4>
-                           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                             <span className="font-medium">{item.tutor}</span>
-                             <span>•</span>
-                             <span>{item.type}</span>
-                           </div>
-                        </div>
-                        <div className="shrink-0 hidden sm:block">
-                           {item.status === 'Upcoming' && <Button size="sm" className="rounded-full shadow-sm">Join Now</Button>}
-                           {item.status === 'Pending' && <Button variant="outline" size="sm" className="rounded-full shadow-sm">Start Test</Button>}
-                           {item.status === 'Completed' && <span className="text-xs font-bold text-success flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Done</span>}
-                        </div>
+                   {schedule.map((item: any, i: number) => {
+                     const date = new Date(item.time);
+                     const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                     
+                     return (
+                       <div key={item.id} className="p-5 flex items-center gap-4 hover:bg-muted/30 transition-colors">
+                          <div className="w-20 text-center shrink-0">
+                             <div className="text-sm font-bold">{timeString.split(' ')[0]}</div>
+                             <div className="text-xs text-muted-foreground">{timeString.split(' ')[1]}</div>
+                          </div>
+                          <div className="w-1 h-12 rounded-full bg-muted shrink-0 relative overflow-hidden">
+                             <div className={`absolute inset-0 ${item.status === 'COMPLETED' ? 'bg-success' : (item.status === 'PENDING' ? 'bg-primary' : 'bg-transparent')}`}></div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                             <h4 className="font-bold text-base truncate">{item.title}</h4>
+                             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                               <span className="font-medium">{item.tutor}</span>
+                               <span>•</span>
+                               <span>{item.type}</span>
+                             </div>
+                          </div>
+                          <div className="shrink-0 hidden sm:block">
+                             {item.status === 'PENDING' && (
+                               <a href={item.meetingLink || "#"} target="_blank" rel="noreferrer">
+                                 <Button size="sm" className="rounded-full shadow-sm">Join Now</Button>
+                               </a>
+                             )}
+                             {item.status === 'COMPLETED' && <span className="text-xs font-bold text-success flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Done</span>}
+                          </div>
+                       </div>
+                     );
+                   })}
+                   
+                   {schedule.length === 0 && (
+                     <div className="p-8 text-center">
+                       <p className="text-muted-foreground text-sm">No classes scheduled for today.</p>
                      </div>
-                   ))}
+                   )}
                 </div>
               </div>
             </section>
@@ -150,21 +194,21 @@ export default function StudentDashboardPage() {
                </div>
                
                <div className="space-y-4">
-                  {[1, 2, 3, 4, 5].map(rank => (
-                    <div key={rank} className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${rank === 3 ? 'bg-primary/5 border border-primary/20' : 'hover:bg-muted/50 border border-transparent'}`}>
-                       <div className={`w-6 text-center font-bold text-sm ${rank === 1 ? 'text-warning' : (rank === 2 ? 'text-zinc-400' : (rank === 3 ? 'text-primary' : 'text-muted-foreground'))}`}>
-                         #{rank}
+                  {leaderboard.map((student: any, idx: number) => (
+                    <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${student.isCurrent ? 'bg-primary/5 border border-primary/20' : 'hover:bg-muted/50 border border-transparent'}`}>
+                       <div className={`w-6 text-center font-bold text-sm ${student.rank === 1 ? 'text-warning' : (student.rank === 2 ? 'text-zinc-400' : (student.rank === 3 ? 'text-primary' : 'text-muted-foreground'))}`}>
+                         #{student.rank}
                        </div>
-                       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
-                         {rank === 3 ? 'RV' : 'U'}
+                       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold uppercase">
+                         {student.isCurrent ? 'You' : student.name.charAt(0)}
                        </div>
                        <div className="flex-1 min-w-0">
-                         <div className={`text-sm font-bold truncate ${rank === 3 ? 'text-foreground' : 'text-muted-foreground'}`}>
-                           {rank === 3 ? 'Rahul Verma (You)' : `Student ${rank}`}
+                         <div className={`text-sm font-bold truncate ${student.isCurrent ? 'text-foreground' : 'text-muted-foreground'}`}>
+                           {student.name}
                          </div>
                        </div>
                        <div className="text-xs font-bold text-primary">
-                         {1500 - (rank * 100)} XP
+                         {student.xp} XP
                        </div>
                     </div>
                   ))}
@@ -178,24 +222,35 @@ export default function StudentDashboardPage() {
                <h3 className="font-bold font-heading mb-4">Pending Tasks</h3>
                
                <div className="space-y-4">
-                  <div className="group border rounded-xl p-4 hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer">
-                    <div className="flex justify-between items-start mb-2">
-                       <h4 className="font-bold text-sm">Calculus Worksheet #4</h4>
-                       <span className="text-[10px] bg-destructive/10 text-destructive font-bold px-2 py-0.5 rounded-full">Due Today</span>
+                  {pendingTasks.map((task: any) => {
+                    const dueDate = new Date(task.dueAt);
+                    const isToday = dueDate.toDateString() === new Date().toDateString();
+                    
+                    return (
+                      <div key={task.id} className="group border rounded-xl p-4 hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer">
+                        <div className="flex justify-between items-start mb-2">
+                           <h4 className="font-bold text-sm">{task.title}</h4>
+                           {isToday && <span className="text-[10px] bg-destructive/10 text-destructive font-bold px-2 py-0.5 rounded-full">Due Today</span>}
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-3 line-clamp-1">{task.type}</p>
+                        <div className="flex justify-between items-center">
+                           <span className="text-xs font-medium flex items-center gap-1 text-muted-foreground">
+                             <Clock className="w-3 h-3" /> {dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                           </span>
+                           <Button size="sm" variant="secondary" className="h-7 text-xs rounded-lg font-semibold">Upload</Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {pendingTasks.length === 0 && (
+                    <div className="text-center p-4">
+                      <p className="text-muted-foreground text-xs">No pending tasks!</p>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-3 line-clamp-1">Submit the answers in PDF format.</p>
-                    <div className="flex justify-between items-center">
-                       <span className="text-xs font-medium flex items-center gap-1 text-muted-foreground">
-                         <Clock className="w-3 h-3" /> 11:59 PM
-                       </span>
-                       <Button size="sm" variant="secondary" className="h-7 text-xs rounded-lg font-semibold">Upload</Button>
-                    </div>
-                  </div>
+                  )}
                </div>
             </div>
-
          </div>
-         
       </div>
     </div>
   );
