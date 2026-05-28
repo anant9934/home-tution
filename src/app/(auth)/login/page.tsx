@@ -23,30 +23,46 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    // Mock Login Logic
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      // Real Login Logic
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Invalid credentials");
+      }
+
+      // Store JWT token (in a real app, use httpOnly cookies)
+      document.cookie = `token=${data.access_token}; path=/; max-age=86400`;
+
+      toast.success("Login successful!");
       
-      // We check the email string to determine the role for the mock frontend
-      const emailLower = email.toLowerCase();
-      
+      const role = data.user.role;
       let redirectUrl = "/";
-      if (emailLower.includes("admin")) {
+      
+      if (role === "SUPER_ADMIN" || role === "ADMIN") {
         redirectUrl = "/admin/dashboard";
-      } else if (emailLower.includes("tutor")) {
+      } else if (role === "TUTOR") {
         redirectUrl = "/teacher/dashboard";
-      } else if (emailLower.includes("student")) {
+      } else if (role === "STUDENT") {
         redirectUrl = "/student/dashboard";
-      } else if (emailLower.includes("parent")) {
+      } else if (role === "PARENT") {
         redirectUrl = "/parent/dashboard";
       } else {
-        // Default to student if unknown
         redirectUrl = "/student/dashboard";
       }
 
-      toast.success("Login successful!");
       router.push(redirectUrl);
-    }, 1000);
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
