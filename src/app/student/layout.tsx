@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, LayoutDashboard, Book, ClipboardList, PenTool, Trophy, CalendarCheck, MessageSquare, User, Bell } from "lucide-react";
+import { BookOpen, LayoutDashboard, Book, ClipboardList, PenTool, Trophy, CalendarCheck, MessageSquare, User, Bell, HelpCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navItems = [
@@ -14,6 +14,7 @@ const navItems = [
   { name: "Attendance", href: "/student/attendance", icon: CalendarCheck },
   { name: "Messages", href: "/student/messages", icon: MessageSquare },
   { name: "Profile", href: "/student/profile", icon: User },
+  { name: "Support", href: "/student/support", icon: HelpCircle },
 ];
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {

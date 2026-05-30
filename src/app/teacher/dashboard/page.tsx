@@ -18,6 +18,8 @@ export default function TeacherDashboardPage() {
   // Modals State
   const [activeMeeting, setActiveMeeting] = useState<any | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [demoApprovalReq, setDemoApprovalReq] = useState<any | null>(null);
+  const [demoMeetingLink, setDemoMeetingLink] = useState("");
 
   // Virtual Classroom State
   const [micOn, setMicOn] = useState(false);
@@ -42,12 +44,20 @@ export default function TeacherDashboardPage() {
     loadDashboard();
   }, []);
 
-  const handleAction = async (req: any, action: "approve" | "reject") => {
+  const handleAction = async (req: any, action: "approve" | "reject", link?: string) => {
      try {
+        if (action === "approve" && !link) {
+           setDemoApprovalReq(req);
+           return;
+        }
+
         const status = action === "approve" ? "CONFIRMED" : "REJECTED";
+        const body: any = { status };
+        if (link) body.meetingLink = link;
+
         await fetchApi(`/tutors/bookings/${req.bookingId}/status`, {
            method: "PATCH",
-           body: JSON.stringify({ status })
+           body: JSON.stringify(body)
         });
         
         if (action === "approve") {
@@ -62,6 +72,10 @@ export default function TeacherDashboardPage() {
              actionRequired: prev.actionRequired.filter((r: any) => r.id !== req.id)
            }));
         }
+        
+        setDemoApprovalReq(null);
+        setDemoMeetingLink("");
+
      } catch (err: any) {
         toast.error(err.message || "Failed to process request");
      }
@@ -244,6 +258,39 @@ export default function TeacherDashboardPage() {
                  </div>
                  <Button type="submit" className="w-full font-bold mt-4">Schedule Class</Button>
               </form>
+           </div>
+        </div>
+      )}
+
+      {/* DEMO APPROVAL MODAL */}
+      {demoApprovalReq && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-6 border-b flex items-center justify-between bg-slate-50">
+                 <h3 className="font-bold font-heading text-lg">Approve Demo</h3>
+                 <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setDemoApprovalReq(null)}>
+                    <X className="w-5 h-5" />
+                 </Button>
+              </div>
+              <div className="p-6 space-y-4">
+                 <div className="space-y-2">
+                    <label className="text-sm font-semibold">Meeting Link (Zoom / Google Meet)</label>
+                    <Input 
+                       required 
+                       placeholder="https://zoom.us/j/..." 
+                       value={demoMeetingLink} 
+                       onChange={e => setDemoMeetingLink(e.target.value)} 
+                    />
+                    <p className="text-xs text-muted-foreground">This link will be emailed to the student automatically.</p>
+                 </div>
+                 <Button 
+                   onClick={() => handleAction(demoApprovalReq, "approve", demoMeetingLink)} 
+                   className="w-full font-bold mt-4 bg-success hover:bg-success/90 text-white"
+                   disabled={!demoMeetingLink}
+                 >
+                   Confirm & Send Link
+                 </Button>
+              </div>
            </div>
         </div>
       )}

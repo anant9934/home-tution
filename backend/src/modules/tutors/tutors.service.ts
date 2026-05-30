@@ -2,10 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateTutorDto } from './dto/create-tutor.dto';
 import { UpdateTutorDto } from './dto/update-tutor.dto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class TutorsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService
+  ) {}
 
   async getDashboard(userId: string) {
     const tutor = await this.prisma.tutorProfile.findUnique({
@@ -136,7 +140,10 @@ export class TutorsService {
 
   async bookDemo(userId: string, tutorId: string, slotIndex: number) {
     // Determine student ID
-    const student = await this.prisma.studentProfile.findUnique({ where: { userId } });
+    const student = await this.prisma.studentProfile.findUnique({ 
+      where: { userId },
+      include: { user: true }
+    });
     if (!student) throw new Error("Only students can book demos.");
 
     // Parse mock slot to a real Date (e.g. tomorrow)
@@ -144,7 +151,7 @@ export class TutorsService {
     scheduledAt.setDate(scheduledAt.getDate() + 1);
     scheduledAt.setHours(16 + slotIndex, 0, 0, 0); // Mock hour based on slot
 
-    return this.prisma.booking.create({
+    const booking = await this.prisma.booking.create({
       data: {
         tutorId,
         studentId: student.id,
@@ -155,17 +162,47 @@ export class TutorsService {
         meetingLink: null, // Will be generated when confirmed
       }
     });
+
+    const tutorProfile = await this.prisma.tutorProfile.findUnique({
+      where: { id: tutorId },
+      include: { user: true }
+    });
+
+    if (tutorProfile && tutorProfile.user.email) {
+      this.mailService.sendDemoRequestEmail(tutorProfile.user.email, student.user.name);
+    }
+
+    return booking;
   }
 
-  async updateBookingStatus(bookingId: string, status: string) {
+  async updateBookingStatus(bookingId: string, status: string, meetingLink?: string) {
     // status should be mapped to BookingStatus (CONFIRMED, CANCELLED, etc)
     let bookingStatus: any = 'CONFIRMED';
     if (status === 'REJECTED' || status === 'CANCELLED') bookingStatus = 'CANCELLED';
     
-    return this.prisma.booking.update({
+    const updateData: any = { status: bookingStatus };
+    if (meetingLink && bookingStatus === 'CONFIRMED') {
+      updateData.meetingLink = meetingLink;
+    }
+
+    const updatedBooking = await this.prisma.booking.update({
       where: { id: bookingId },
-      data: { status: bookingStatus }
+      data: updateData,
+      include: {
+        tutor: { include: { user: true } },
+        student: { include: { user: true } }
+      }
     });
+
+    if (bookingStatus === 'CONFIRMED' && updatedBooking.student.user.email) {
+      this.mailService.sendDemoAcceptedEmail(
+        updatedBooking.student.user.email,
+        updatedBooking.tutor.user.name,
+        updatedBooking.meetingLink || 'Link will be provided soon'
+      );
+    }
+
+    return updatedBooking;
   }
 
   async scheduleClass(userId: string, data: { title: string; studentName: string; time: string }) {

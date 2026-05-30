@@ -32,8 +32,8 @@ export class TutorsController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('bookings/:id/status')
-  updateBookingStatus(@Param('id') id: string, @Body() body: { status: string }) {
-    return this.tutorsService.updateBookingStatus(id, body.status);
+  updateBookingStatus(@Param('id') id: string, @Body() body: { status: string, meetingLink?: string }) {
+    return this.tutorsService.updateBookingStatus(id, body.status, body.meetingLink);
   }
 
   @UseGuards(JwtAuthGuard)

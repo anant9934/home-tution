@@ -13,6 +13,9 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ParentsModule } from './modules/parents/parents.module';
+import { MailModule } from './modules/mail/mail.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
+import { SupportModule } from './modules/support/support.module';
 
 @Module({
   imports: [
@@ -27,7 +30,10 @@ import { ParentsModule } from './modules/parents/parents.module';
     PaymentsModule, 
     PrismaModule,
     AdminModule,
-    ParentsModule
+    ParentsModule,
+    MailModule,
+    UploadsModule,
+    SupportModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -31,12 +31,33 @@ export default function StudentAssignmentsPage() {
     loadAssignments();
   }, []);
 
-  const handleSubmit = async (id: string) => {
+  const handleFileUpload = async (id: string, event: React.ChangeEvent<HTMLInputElement>) => {
+     const file = event.target.files?.[0];
+     if (!file) return;
+
      setUploading(id);
      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        let token = null;
+        const match = document.cookie.match(/(^| )token=([^;]+)/);
+        if (match) token = match[2];
+
+        // 1. Upload to Cloudinary via Backend
+        const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/uploads`, {
+          method: "POST",
+          headers: token ? { "Authorization": `Bearer ${token}` } : {},
+          body: formData
+        });
+        
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok) throw new Error(uploadData.message || "File upload failed");
+
+        // 2. Submit Assignment with Cloudinary URL
         await fetchApi(`/students/assignments/${id}/submit`, {
           method: "POST",
-          body: JSON.stringify({ submissionUrl: "https://example.com/mock.pdf" })
+          body: JSON.stringify({ submissionUrl: uploadData.url })
         });
         
         const assignment = pendingItems.find(a => a.id === id);
@@ -143,17 +164,29 @@ export default function StudentAssignmentsPage() {
                            {assignment.score && <div className="text-xs font-semibold text-muted-foreground mt-1 border px-2 py-1 rounded-md">Score: {assignment.score}</div>}
                         </div>
                      ) : (
-                        <Button 
-                           onClick={() => handleSubmit(assignment.id)} 
-                           disabled={uploading === assignment.id}
-                           className="w-full rounded-xl gap-2 shadow-sm font-bold"
-                        >
-                           {uploading === assignment.id ? (
-                              <span className="flex items-center gap-2 animate-pulse"><File className="w-4 h-4" /> Uploading...</span>
-                           ) : (
-                              <><Upload className="w-4 h-4" /> Submit Work</>
-                           )}
-                        </Button>
+                        <div className="relative w-full sm:w-auto">
+                           <label htmlFor={`file-upload-${assignment.id}`} className="w-full">
+                              <input 
+                                 type="file" 
+                                 id={`file-upload-${assignment.id}`} 
+                                 className="hidden" 
+                                 onChange={(e) => handleFileUpload(assignment.id, e)}
+                                 disabled={uploading === assignment.id}
+                                 accept=".pdf,.png,.jpg,.mp4"
+                              />
+                              <Button 
+                                 type="button"
+                                 disabled={uploading === assignment.id}
+                                 className={`w-full rounded-xl gap-2 shadow-sm font-bold pointer-events-none ${uploading === assignment.id ? 'opacity-70' : ''}`}
+                              >
+                                 {uploading === assignment.id ? (
+                                    <span className="flex items-center gap-2 animate-pulse"><File className="w-4 h-4" /> Uploading...</span>
+                                 ) : (
+                                    <><Upload className="w-4 h-4" /> Upload & Submit</>
+                                 )}
+                              </Button>
+                           </label>
+                        </div>
                      )}
                   </div>
                </div>
