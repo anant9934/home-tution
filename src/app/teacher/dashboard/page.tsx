@@ -14,6 +14,7 @@ export default function TeacherDashboardPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [weeklyData, setWeeklyData] = useState<{day:string,amount:number}[]>([]);
   
   // Modals State
   const [activeMeeting, setActiveMeeting] = useState<any | null>(null);
@@ -33,8 +34,12 @@ export default function TeacherDashboardPage() {
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const dashboardData = await fetchApi("/tutors/dashboard");
+        const [dashboardData, earningsData] = await Promise.all([
+          fetchApi("/tutors/dashboard"),
+          fetchApi("/tutors/earnings")
+        ]);
         setData(dashboardData);
+        if (earningsData?.weeklyBreakdown) setWeeklyData(earningsData.weeklyBreakdown);
       } catch (err: any) {
         setError(err.message || "Failed to load teacher dashboard");
       } finally {
@@ -366,21 +371,33 @@ export default function TeacherDashboardPage() {
                </div>
             </div>
 
-            {/* REVENUE CHART UI */}
             <div className="bg-white rounded-3xl border shadow-sm p-6">
-               <h3 className="font-bold font-heading mb-6">Revenue Overview</h3>
-               <div className="h-64 flex items-end justify-between gap-2 border-b border-l pb-2 pl-2">
-                  {[40, 60, 45, 80, 55, 90, 70].map((h, i) => (
-                    <div key={i} className="w-full bg-success/20 rounded-t-md hover:bg-success/40 transition-colors relative group cursor-pointer" style={{ height: `${h}%` }}>
-                       <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg">
-                         ₹{(h * 100).toLocaleString()}
+               <h3 className="font-bold font-heading mb-6">Revenue This Week</h3>
+               {weeklyData.length > 0 ? (
+                 <div className="h-64 flex items-end justify-between gap-2 border-b border-l pb-2 pl-2">
+                   {weeklyData.map((d, i) => {
+                     const max = Math.max(...weeklyData.map(x => x.amount), 1);
+                     const pct = Math.max((d.amount / max) * 100, d.amount > 0 ? 8 : 4);
+                     return (
+                       <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                         <div
+                           className="w-full bg-success/20 rounded-t-md hover:bg-success/40 transition-colors relative group cursor-pointer"
+                           style={{ height: `${pct}%` }}
+                         >
+                           <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg">
+                             ₹{d.amount.toLocaleString()}
+                           </div>
+                         </div>
+                         <span className="text-[10px] text-muted-foreground font-medium">{d.day}</span>
                        </div>
-                    </div>
-                  ))}
-               </div>
-               <div className="flex justify-between mt-2 text-xs text-muted-foreground px-2">
-                  <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-               </div>
+                     );
+                   })}
+                 </div>
+               ) : (
+                 <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
+                   No completed classes yet this week.
+                 </div>
+               )}
             </div>
             
          </div>

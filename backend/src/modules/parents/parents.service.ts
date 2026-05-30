@@ -69,9 +69,16 @@ export class ParentsService {
     });
     const totalPending = pendingFees.reduce((sum, f) => sum + f.amount, 0);
 
-    // Unread messages for the parent
+    // Unread messages for this parent specifically
+    const parentUser = parent.user;
     const unreadMessages = await this.prisma.message.count({
-      where: { conversation: { messages: { some: { senderId: { not: userId } } } }, seen: false },
+      where: {
+        seen: false,
+        senderId: { not: parentUser.id },
+        conversation: {
+          participants: { some: { id: parentUser.id } }
+        }
+      },
     });
 
     // Quiz performance by subject
@@ -144,20 +151,39 @@ export class ParentsService {
       })),
     ].slice(0, 5);
 
-    // Teacher feedback from recent completed bookings
-    const recentBookings = await this.prisma.booking.findMany({
-      where: { studentId: child.id, status: 'COMPLETED' },
-      include: { tutor: { include: { user: true } } },
-      orderBy: { scheduledAt: 'desc' },
+    // Teacher feedback from real assignment feedback field
+    const gradedSubmissions = await this.prisma.submission.findMany({
+      where: { studentId: child.id, feedback: { not: null } },
+      include: {
+        assignment: { include: { course: true } },
+      },
+      orderBy: { submittedAt: 'desc' },
       take: 3,
     });
 
-    const feedback = recentBookings.map((b) => ({
-      tutorName: b.tutor.user.name,
-      subject: b.tutor.subjects?.[0] || 'Tutor',
-      date: b.scheduledAt.toISOString(),
-      note: `${child.user.name.split(' ')[0]} has been performing well in recent sessions. Keep up the consistent effort!`,
-    }));
+    // Fallback to recent completed bookings if no graded submissions
+    const recentBookings = gradedSubmissions.length === 0
+      ? await this.prisma.booking.findMany({
+          where: { studentId: child.id, status: 'COMPLETED' },
+          include: { tutor: { include: { user: true } } },
+          orderBy: { scheduledAt: 'desc' },
+          take: 3,
+        })
+      : [];
+
+    const feedback = gradedSubmissions.length > 0
+      ? gradedSubmissions.map((s) => ({
+          tutorName: 'Teacher',
+          subject: s.assignment.course?.subject || 'General',
+          date: s.submittedAt.toISOString(),
+          note: s.feedback!,
+        }))
+      : recentBookings.map((b) => ({
+          tutorName: b.tutor.user.name,
+          subject: b.tutor.subjects?.[0] || 'Tutor',
+          date: b.scheduledAt.toISOString(),
+          note: `${child.user.name.split(' ')[0]} attended a ${b.bookingType === 'ONE_ON_ONE' ? '1-on-1' : 'group'} session. Keep up the good work!`,
+        }));
 
     // Upcoming classes
     const upcomingBookings = await this.prisma.booking.findMany({
@@ -407,8 +433,13 @@ export class ParentsService {
   // ─── Messages ─────────────────────────────────────────────────────────
   async getMessages(userId: string) {
     const conversations = await this.prisma.conversation.findMany({
-      where: { messages: { some: { senderId: userId } } },
+      where: {
+        participants: { some: { id: userId } }
+      },
       include: {
+        participants: {
+          select: { id: true, name: true, role: true, avatarUrl: true }
+        },
         messages: {
           orderBy: { createdAt: 'asc' },
           include: { sender: { select: { id: true, name: true, role: true, avatarUrl: true } } },
@@ -418,7 +449,7 @@ export class ParentsService {
     });
 
     return conversations.map((conv) => {
-      const otherUser = conv.messages.find((m) => m.senderId !== userId)?.sender;
+      const otherUser = conv.participants.find((p) => p.id !== userId);
       const lastMessage = conv.messages[conv.messages.length - 1];
       const unreadCount = conv.messages.filter((m) => m.senderId !== userId && !m.seen).length;
       return {
@@ -441,19 +472,25 @@ export class ParentsService {
 
   // ─── Send Message ─────────────────────────────────────────────────────
   async sendMessage(userId: string, dto: SendMessageDto) {
-    // Find or create conversation with this tutor
+    // Find existing conversation using participants relation
     let conversation = await this.prisma.conversation.findFirst({
       where: {
+        type: 'DIRECT',
         AND: [
-          { messages: { some: { senderId: userId } } },
-          { messages: { some: { senderId: dto.tutorUserId } } },
+          { participants: { some: { id: userId } } },
+          { participants: { some: { id: dto.tutorUserId } } },
         ],
       },
     });
 
     if (!conversation) {
       conversation = await this.prisma.conversation.create({
-        data: { type: 'DIRECT' },
+        data: {
+          type: 'DIRECT',
+          participants: {
+            connect: [{ id: userId }, { id: dto.tutorUserId }]
+          }
+        },
       });
     }
 

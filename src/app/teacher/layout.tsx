@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import { BookOpen, LayoutDashboard, Users, Book, ClipboardList, PenTool, CalendarCheck, MessageSquare, IndianRupee, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationsPopover } from "@/components/NotificationsPopover";
+import { fetchApi } from "@/lib/api";
 
 const navItems = [
   { name: "Dashboard", href: "/teacher/dashboard", icon: LayoutDashboard },
@@ -20,6 +22,13 @@ const navItems = [
 
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [profile, setProfile] = useState<{ name: string; subjects?: string[] } | null>(null);
+
+  useEffect(() => {
+    fetchApi("/tutors/profile")
+      .then(d => setProfile({ name: d?.user?.name || "Teacher", subjects: d?.subjects }))
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -54,16 +63,21 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         <div className="p-4 border-t">
            <div className="flex items-center gap-3">
               <Avatar>
-                 <AvatarImage src="" />
-                 <AvatarFallback className="bg-primary-light text-primary font-bold">SJ</AvatarFallback>
+                 <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.name}`} />
+                 <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                   {profile?.name?.substring(0, 2).toUpperCase() || "TP"}
+                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                 <p className="text-sm font-semibold truncate">Dr. Sarah J.</p>
-                 <p className="text-xs text-muted-foreground truncate">Mathematics</p>
+                 <p className="text-sm font-semibold truncate">{profile?.name || "Teacher"}</p>
+                 <p className="text-xs text-muted-foreground truncate">
+                   {Array.isArray(profile?.subjects) ? profile.subjects[0] : profile?.subjects || "Tutor"}
+                 </p>
               </div>
            </div>
         </div>
       </aside>
+
 
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
@@ -93,19 +107,13 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
       {/* MOBILE BOTTOM NAV */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 border-t bg-white z-50 pb-safe">
-         <div className="flex justify-around items-center h-16 px-2">
-            {[
-              { name: "Home", href: "/teacher/dashboard", icon: LayoutDashboard },
-              { name: "Classes", href: "/teacher/classes", icon: Book },
-              { name: "Students", href: "/teacher/students", icon: Users },
-              { name: "Assignments", href: "/teacher/assignments", icon: ClipboardList },
-              { name: "Profile", href: "/teacher/profile", icon: User },
-            ].map(item => {
+         <div className="flex overflow-x-auto items-center h-16 px-2 gap-1 no-scrollbar">
+            {navItems.map(item => {
               const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
-                <Link key={item.name} href={item.href} className={`flex flex-col items-center justify-center w-16 gap-1 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+                <Link key={item.name} href={item.href} className={`flex flex-col items-center justify-center min-w-[4rem] gap-0.5 py-1 px-2 rounded-xl transition-colors ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`}>
                    <item.icon className="w-5 h-5" />
-                   <span className="text-[10px] font-medium">{item.name}</span>
+                   <span className="text-[9px] font-semibold whitespace-nowrap">{item.name}</span>
                 </Link>
               );
             })}

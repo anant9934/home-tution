@@ -260,6 +260,7 @@ export class TutorsService {
       const completedLessons = student.lessonProgress.filter(lp => lp.completed).length;
       return {
         id: student.id,
+        userId: student.userId, // needed for messaging
         name: student.user.name,
         email: student.user.email,
         phone: student.user.phone,
@@ -306,9 +307,39 @@ export class TutorsService {
       orderBy: { deadline: 'desc' },
       include: {
         course: { select: { title: true } },
-        submissions: true
+        submissions: { include: { student: { include: { user: true } } } }
       }
     });
+  }
+
+  async createAssignment(userId: string, data: any) {
+    const tutor = await this.prisma.tutorProfile.findUnique({ where: { userId } });
+    if (!tutor) throw new NotFoundException('Tutor not found');
+
+    return this.prisma.assignment.create({
+      data: {
+        title: data.title,
+        description: data.description,
+        courseId: data.courseId,
+        createdBy: tutor.id,
+        deadline: new Date(data.deadline),
+        maxMarks: Number(data.maxMarks),
+        attachmentUrl: data.attachmentUrl || null
+      }
+    });
+  }
+
+  async gradeSubmission(userId: string, submissionId: string, data: any) {
+     const tutor = await this.prisma.tutorProfile.findUnique({ where: { userId } });
+     if (!tutor) throw new NotFoundException('Tutor not found');
+
+     return this.prisma.submission.update({
+       where: { id: submissionId },
+       data: { 
+         marks: Number(data.marks), 
+         feedback: data.feedback 
+       }
+     });
   }
 
   async getQuizzes(userId: string) {
@@ -320,9 +351,46 @@ export class TutorsService {
       orderBy: { startTime: 'desc' },
       include: {
         course: { select: { title: true } },
-        attempts: true,
-        questions: { select: { id: true } }
+        attempts: { include: { student: { include: { user: true } } } },
+        questions: { select: { id: true, questionText: true, options: true, correctAnswer: true, marks: true } }
       }
+    });
+  }
+
+  async createQuiz(userId: string, data: any) {
+    const tutor = await this.prisma.tutorProfile.findUnique({ where: { userId } });
+    if (!tutor) throw new NotFoundException('Tutor not found');
+
+    return this.prisma.quiz.create({
+      data: {
+        title: data.title,
+        courseId: data.courseId,
+        duration: Number(data.duration),
+        totalMarks: Number(data.totalMarks),
+        createdBy: tutor.id,
+        startTime: new Date()
+      }
+    });
+  }
+
+  async addQuestionsToQuiz(userId: string, quizId: string, questions: any[]) {
+    const tutor = await this.prisma.tutorProfile.findUnique({ where: { userId } });
+    if (!tutor) throw new NotFoundException('Tutor not found');
+
+    const quiz = await this.prisma.quiz.findFirst({ where: { id: quizId, createdBy: tutor.id } });
+    if (!quiz) throw new NotFoundException('Quiz not found');
+
+    // Delete existing questions for this quiz to replace them, or just insert new ones
+    await this.prisma.question.deleteMany({ where: { quizId } });
+
+    return this.prisma.question.createMany({
+      data: questions.map(q => ({
+        quizId,
+        questionText: q.questionText,
+        options: q.options, // Should be an array of strings like ["A", "B", "C", "D"]
+        correctAnswer: q.correctAnswer,
+        marks: Number(q.marks || 1)
+      }))
     });
   }
 
@@ -340,6 +408,51 @@ export class TutorsService {
     });
   }
 
+  async markAttendance(userId: string, data: { bookingId: string, status: string }) {
+    const tutor = await this.prisma.tutorProfile.findUnique({ where: { userId } });
+    if (!tutor) throw new NotFoundException('Tutor not found');
+
+    const booking = await this.prisma.booking.findFirst({
+      where: { id: data.bookingId, tutorId: tutor.id }
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    // Find or create ClassSession for this booking
+    let session = await this.prisma.classSession.findFirst({
+      where: { bookingId: booking.id }
+    });
+
+    if (!session) {
+      session = await this.prisma.classSession.create({
+        data: {
+          bookingId: booking.id,
+          attendanceStatus: 'COMPLETED'
+        }
+      });
+    }
+
+    const attendance = await this.prisma.attendance.create({
+      data: {
+        studentId: booking.studentId,
+        classSessionId: session.id,
+        status: data.status as any,
+        markedBy: tutor.id
+      }
+    });
+
+    if (data.status === 'PRESENT') {
+      await this.prisma.xP.create({
+        data: {
+          studentId: booking.studentId,
+          points: 20,
+          source: 'ATTENDANCE'
+        }
+      });
+    }
+
+    return attendance;
+  }
+
   async getEarnings(userId: string) {
     const tutor = await this.prisma.tutorProfile.findUnique({ 
       where: { userId },
@@ -347,27 +460,45 @@ export class TutorsService {
     });
     if (!tutor) throw new NotFoundException('Tutor not found');
 
-    // Aggregate earnings
     const completedBookings = tutor.bookings.filter(b => b.status === 'COMPLETED');
     const totalEarnings = completedBookings.reduce((sum, b) => sum + (b.duration / 60) * tutor.hourlyRate, 0);
-
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const thisMonthBookings = completedBookings.filter(b => b.scheduledAt >= startOfMonth);
-    const monthlyEarnings = thisMonthBookings.reduce((sum, b) => sum + (b.duration / 60) * tutor.hourlyRate, 0);
+    const monthlyEarnings = completedBookings.filter(b => b.scheduledAt >= startOfMonth)
+      .reduce((sum, b) => sum + (b.duration / 60) * tutor.hourlyRate, 0);
+
+    // Build daily earnings for last 7 days
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const last7 = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d;
+    });
+    const weeklyBreakdown = last7.map(day => {
+      const dayBookings = completedBookings.filter(b => {
+        const bd = new Date(b.scheduledAt);
+        return bd.getFullYear() === day.getFullYear() &&
+               bd.getMonth() === day.getMonth() &&
+               bd.getDate() === day.getDate();
+      });
+      const amount = dayBookings.reduce((sum, b) => sum + (b.duration / 60) * tutor.hourlyRate, 0);
+      return { day: days[day.getDay()], amount };
+    });
 
     return {
       totalEarnings,
       monthlyEarnings,
       hourlyRate: tutor.hourlyRate,
       completedClasses: completedBookings.length,
-      history: completedBookings.slice(-10).map(b => ({
+      weeklyBreakdown,
+      history: completedBookings.slice(-10).reverse().map(b => ({
         id: b.id,
         date: b.scheduledAt,
-        amount: (b.duration / 60) * tutor.hourlyRate,
+        amount: Math.round((b.duration / 60) * tutor.hourlyRate),
         status: b.paymentStatus
       }))
     };
   }
+
 
   async getProfile(userId: string) {
     const tutor = await this.prisma.tutorProfile.findUnique({

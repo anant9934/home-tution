@@ -61,15 +61,45 @@ export class TutorsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('assignments')
+  createAssignment(@Request() req: any, @Body() body: any) {
+    return this.tutorsService.createAssignment(req.user.userId, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('submissions/:id/grade')
+  gradeSubmission(@Param('id') id: string, @Request() req: any, @Body() body: any) {
+    return this.tutorsService.gradeSubmission(req.user.userId, id, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('quizzes')
   getQuizzes(@Request() req: any) {
     return this.tutorsService.getQuizzes(req.user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('quizzes')
+  createQuiz(@Request() req: any, @Body() body: any) {
+    return this.tutorsService.createQuiz(req.user.userId, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('quizzes/:id/questions')
+  addQuestionsToQuiz(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.tutorsService.addQuestionsToQuiz(req.user.userId, id, body.questions);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('attendance')
   getAttendance(@Request() req: any) {
     return this.tutorsService.getAttendance(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('attendance')
+  markAttendance(@Request() req: any, @Body() body: { bookingId: string, status: string }) {
+    return this.tutorsService.markAttendance(req.user.userId, body);
   }
 
   @UseGuards(JwtAuthGuard)

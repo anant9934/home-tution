@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { PenTool, CheckCircle2, ChevronRight, FileText, X, Trophy, AlertCircle, Loader2 } from "lucide-react";
+import { PenTool, CheckCircle2, ChevronRight, X, Trophy, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,7 +16,7 @@ export default function StudentQuizzesPage() {
 
   const [activeQuiz, setActiveQuiz] = useState<string | null>(null);
   const [quizStep, setQuizStep] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -38,12 +38,10 @@ export default function StudentQuizzesPage() {
     setSubmitting(true);
     try {
       const activeData = pendingQuizzes.find(q => q.id === quizId);
-      // Mock score logic: Assume the student answered correctly and gets full marks.
-      const totalMarks = activeData.questions.length || 10;
       
       const res = await fetchApi(`/students/quizzes/${quizId}/submit`, {
         method: "POST",
-        body: JSON.stringify({ score: totalMarks }),
+        body: JSON.stringify({ answers }),
       });
 
       setActiveQuiz(null);
@@ -52,7 +50,7 @@ export default function StudentQuizzesPage() {
         id: res.attempt.id,
         title: activeData.title,
         subject: activeData.subject,
-        score: `${totalMarks}/${totalMarks}`,
+        score: `${res.attempt.score}/${activeData.questions.reduce((sum: number, q: any) => sum + (q.marks || 1), 0)}`,
         date: new Date().toISOString().split('T')[0]
       }, ...prev]);
 
@@ -63,7 +61,7 @@ export default function StudentQuizzesPage() {
       setSubmitting(false);
       setTimeout(() => {
         setQuizStep(0);
-        setSelectedAnswer(null);
+        setAnswers({});
       }, 500);
     }
   };
@@ -90,6 +88,7 @@ export default function StudentQuizzesPage() {
   }
 
   const activeData = pendingQuizzes.find(q => q.id === activeQuiz);
+  const currentQuestion = activeData?.questions?.[quizStep];
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-20 lg:pb-8 relative">
@@ -98,129 +97,140 @@ export default function StudentQuizzesPage() {
          <p className="text-muted-foreground mt-1">Test your knowledge and earn XP.</p>
       </div>
 
-      {/* QUIZ MODAL */}
-      {activeQuiz && activeData && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-              <div className="p-6 border-b flex items-center justify-between bg-slate-50">
-                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-warning/10 rounded-xl flex items-center justify-center">
-                       <PenTool className="w-5 h-5 text-warning" />
-                    </div>
+      <div className="grid md:grid-cols-2 gap-8">
+         <div className="space-y-6">
+            <h2 className="font-bold text-xl flex items-center gap-2"><PenTool className="w-5 h-5 text-primary" /> Pending Quizzes</h2>
+            {pendingQuizzes.map(quiz => (
+               <div key={quiz.id} className="bg-white p-5 rounded-3xl border shadow-sm flex flex-col items-start gap-4 hover:shadow-md transition-shadow">
+                  <div className="w-full flex justify-between items-start">
                     <div>
-                       <h3 className="font-bold font-heading">{activeData.title}</h3>
-                       <p className="text-xs text-muted-foreground">Question {quizStep + 1} of {activeData.questions.length || 1}</p>
+                       <Badge variant="secondary" className="mb-2 bg-primary/10 text-primary">{quiz.subject}</Badge>
+                       <h3 className="font-bold text-lg">{quiz.title}</h3>
                     </div>
-                 </div>
-                 <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setActiveQuiz(null)}>
-                    <X className="w-5 h-5" />
-                 </Button>
-              </div>
-
-              <div className="p-8">
-                 {quizStep === 0 ? (
-                    <>
-                       <h4 className="text-xl font-bold mb-6">
-                          {activeData.questions[0]?.text || "Take the quiz carefully!"}
-                       </h4>
-                       <div className="space-y-3">
-                          {(activeData.questions[0]?.options || ["Option 1", "Option 2", "Option 3", "Option 4"]).map((ans: string, i: number) => (
-                             <button
-                                key={i}
-                                onClick={() => setSelectedAnswer(i)}
-                                className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                                   selectedAnswer === i ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:border-primary/30 hover:bg-slate-50"
-                                }`}
-                             >
-                                <div className="flex items-center gap-3">
-                                   <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedAnswer === i ? "border-primary" : "border-muted-foreground/30"}`}>
-                                      {selectedAnswer === i && <div className="w-3 h-3 bg-primary rounded-full" />}
-                                   </div>
-                                   <span className={`font-semibold ${selectedAnswer === i ? "text-primary" : "text-foreground"}`}>{ans}</span>
-                                </div>
-                             </button>
-                          ))}
-                       </div>
-                       <div className="mt-8 pt-6 border-t flex justify-end">
-                          <Button disabled={selectedAnswer === null} onClick={() => setQuizStep(1)} className="rounded-full px-8 gap-2 font-bold">
-                             Submit Answer <ChevronRight className="w-4 h-4" />
-                          </Button>
-                       </div>
-                    </>
-                 ) : (
-                    <div className="text-center py-8">
-                       <div className="w-20 h-20 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-6 relative">
-                          <div className="absolute inset-0 bg-success/20 rounded-full animate-ping"></div>
-                          <CheckCircle2 className="w-10 h-10 text-success" />
-                       </div>
-                       <h4 className="text-2xl font-bold font-heading mb-2">Quiz Completed!</h4>
-                       <p className="text-muted-foreground mb-8">You successfully finished all questions.</p>
-                       <Button disabled={submitting} onClick={() => handleFinishQuiz(activeQuiz)} className="rounded-full px-8 font-bold w-full sm:w-auto">
-                          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Finish & Earn XP"}
-                       </Button>
+                    <div className="text-right">
+                       <div className="text-sm font-bold text-muted-foreground">{quiz.duration} mins</div>
                     </div>
-                 )}
-              </div>
-           </div>
-        </div>
-      )}
-
-      <div className="grid gap-4">
-         {pendingQuizzes.map(quiz => (
-            <div key={quiz.id} className="bg-white rounded-2xl border shadow-sm p-6 flex flex-col sm:flex-row gap-6 sm:items-center justify-between transition-all hover:shadow-md">
-               <div className="flex gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-warning/10 text-warning`}>
-                     <PenTool className="w-6 h-6" />
                   </div>
-                  <div>
-                     <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="border-primary/20 text-primary">{quiz.subject}</Badge>
-                        <span className="text-xs font-semibold text-muted-foreground">{quiz.duration} mins • {quiz.questions.length} Qs</span>
-                     </div>
-                     <h3 className="font-bold text-lg">{quiz.title}</h3>
-                  </div>
-               </div>
-               
-               <div className="shrink-0 w-full sm:w-auto">
-                  <Button onClick={() => setActiveQuiz(quiz.id)} className="w-full rounded-xl gap-2 shadow-sm font-bold">
-                     <PenTool className="w-4 h-4" /> Start Quiz
+                  <Button 
+                    className="w-full rounded-xl gap-2" 
+                    onClick={() => {
+                      if (!quiz.questions || quiz.questions.length === 0) {
+                        toast.error("This quiz has no questions yet.");
+                        return;
+                      }
+                      setActiveQuiz(quiz.id);
+                      setQuizStep(0);
+                      setAnswers({});
+                    }}
+                  >
+                    Start Quiz <ChevronRight className="w-4 h-4" />
                   </Button>
                </div>
-            </div>
-         ))}
+            ))}
+            {pendingQuizzes.length === 0 && (
+               <div className="text-center p-8 bg-slate-50 border border-dashed rounded-3xl text-muted-foreground">
+                  No pending quizzes. Great job!
+               </div>
+            )}
+         </div>
 
-         {completedQuizzes.map(quiz => (
-            <div key={quiz.id} className="bg-white rounded-2xl border shadow-sm p-6 flex flex-col sm:flex-row gap-6 sm:items-center justify-between transition-all hover:shadow-md opacity-80">
-               <div className="flex gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-success/10 text-success`}>
-                     <Trophy className="w-6 h-6" />
-                  </div>
+         <div className="space-y-6">
+            <h2 className="font-bold text-xl flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-success" /> Completed</h2>
+            {completedQuizzes.map(quiz => (
+               <div key={quiz.id} className="bg-white p-5 rounded-3xl border border-slate-100 flex justify-between items-center">
                   <div>
-                     <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="border-primary/20 text-primary">{quiz.subject}</Badge>
-                        <span className="text-xs font-semibold text-muted-foreground">{quiz.date}</span>
+                     <h3 className="font-bold">{quiz.title}</h3>
+                     <div className="text-xs text-muted-foreground mt-1">{quiz.date}</div>
+                  </div>
+                  <div className="text-right">
+                     <div className="font-bold text-lg text-success">{quiz.score}</div>
+                  </div>
+               </div>
+            ))}
+            {completedQuizzes.length === 0 && (
+               <div className="text-center p-8 bg-slate-50 border border-dashed rounded-3xl text-muted-foreground">
+                  You haven't completed any quizzes yet.
+               </div>
+            )}
+         </div>
+      </div>
+
+      {/* ACTIVE QUIZ OVERLAY */}
+      {activeQuiz && activeData && currentQuestion && (
+         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col h-[80vh] md:h-auto md:max-h-[85vh]">
+               <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+                  <div className="font-bold">{activeData.title}</div>
+                  <div className="flex items-center gap-4">
+                     <div className="text-sm font-bold bg-primary/10 text-primary px-3 py-1 rounded-full">
+                        Question {quizStep + 1} of {activeData.questions.length}
                      </div>
-                     <h3 className="font-bold text-lg line-through text-muted-foreground">{quiz.title}</h3>
+                     <button onClick={() => { setActiveQuiz(null); setAnswers({}); }} className="text-slate-400 hover:text-slate-600 transition-colors">
+                        <X className="w-6 h-6" />
+                     </button>
                   </div>
                </div>
                
-               <div className="shrink-0 w-full sm:w-auto">
-                  <div className="flex flex-col items-end">
-                     <div className="text-sm font-bold text-success flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Completed</div>
-                     <div className="text-xs font-semibold text-muted-foreground mt-1 border px-2 py-1 rounded-md">Score: {quiz.score}</div>
+               <div className="p-6 md:p-8 flex-1 overflow-y-auto">
+                  <h3 className="text-2xl font-bold font-heading mb-8">
+                     {currentQuestion.text}
+                  </h3>
+                  
+                  <div className="space-y-3">
+                     {currentQuestion.options.map((option: string, index: number) => {
+                        const isSelected = answers[currentQuestion.id] === option;
+                        return (
+                          <button
+                             key={index}
+                             onClick={() => setAnswers({...answers, [currentQuestion.id]: option})}
+                             className={`w-full text-left p-4 rounded-2xl border-2 transition-all flex items-center gap-4 ${
+                                isSelected 
+                                ? 'border-primary bg-primary/5 shadow-sm' 
+                                : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50'
+                             }`}
+                          >
+                             <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${isSelected ? 'border-primary bg-primary text-white' : 'border-slate-300'}`}>
+                                {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full"></div>}
+                             </div>
+                             <span className="font-medium text-lg">{option}</span>
+                          </button>
+                        );
+                     })}
                   </div>
                </div>
-            </div>
-         ))}
 
-         {pendingQuizzes.length === 0 && completedQuizzes.length === 0 && (
-            <div className="bg-white rounded-3xl border shadow-sm p-12 text-center flex flex-col items-center">
-               <Trophy className="w-16 h-16 text-muted-foreground opacity-20 mb-4" />
-               <h3 className="text-xl font-bold font-heading">No Quizzes</h3>
-               <p className="text-muted-foreground mt-1">There are no quizzes assigned to you at the moment.</p>
+               <div className="p-6 border-t bg-slate-50 flex justify-between items-center">
+                  <Button 
+                     variant="outline" 
+                     className="rounded-xl"
+                     disabled={quizStep === 0 || submitting}
+                     onClick={() => setQuizStep(prev => prev - 1)}
+                  >
+                     Previous
+                  </Button>
+                  
+                  {quizStep < activeData.questions.length - 1 ? (
+                     <Button 
+                        className="rounded-xl gap-2"
+                        disabled={!answers[currentQuestion.id]}
+                        onClick={() => setQuizStep(prev => prev + 1)}
+                     >
+                        Next <ChevronRight className="w-4 h-4" />
+                     </Button>
+                  ) : (
+                     <Button 
+                        className="rounded-xl gap-2 bg-success hover:bg-success/90 text-white"
+                        disabled={!answers[currentQuestion.id] || submitting}
+                        onClick={() => handleFinishQuiz(activeData.id)}
+                     >
+                        {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trophy className="w-4 h-4" />} 
+                        {submitting ? "Submitting..." : "Submit Quiz"}
+                     </Button>
+                  )}
+               </div>
             </div>
-         )}
-      </div>
+         </div>
+      )}
     </div>
   );
 }

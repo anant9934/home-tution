@@ -344,7 +344,7 @@ export class StudentsService {
           id: qst.id,
           text: qst.questionText,
           options: qst.options as string[],
-          correctAnswer: qst.correctAnswer
+          // SECURITY: Exclude correctAnswer so students cannot inspect the network tab to cheat.
         }))
       })),
       completed: completed.map(c => ({
@@ -357,24 +357,36 @@ export class StudentsService {
     };
   }
 
-  async submitQuiz(userId: string, quizId: string, score: number) {
+  async submitQuiz(userId: string, quizId: string, answers: Record<string, string>) {
     const studentId = await this.getStudentId(userId);
     
-    const quiz = await this.prisma.quiz.findUnique({ where: { id: quizId } });
-    if (!quiz) throw new NotFoundException();
+    const quiz = await this.prisma.quiz.findUnique({ 
+      where: { id: quizId },
+      include: { questions: true } 
+    });
+    if (!quiz) throw new NotFoundException('Quiz not found');
+
+    // Secure Score Calculation
+    let calculatedScore = 0;
+    quiz.questions.forEach(question => {
+      const studentAnswer = answers[question.id];
+      if (studentAnswer === question.correctAnswer) {
+        calculatedScore += question.marks;
+      }
+    });
 
     // 1. Record Attempt
     const attempt = await this.prisma.quizAttempt.create({
       data: {
         quizId,
         studentId,
-        score,
+        score: calculatedScore,
         submittedAt: new Date(),
       }
     });
 
     // 2. Award XP
-    const xpReward = Math.round((score / quiz.totalMarks) * 100);
+    const xpReward = Math.round((calculatedScore / quiz.totalMarks) * 100);
     if (xpReward > 0) {
       await this.prisma.xP.create({
         data: {
@@ -418,16 +430,31 @@ export class StudentsService {
 
   // ─── MESSAGES ───────────────────────────────────────────────────────────
   async getMessages(userId: string) {
-    return this.prisma.conversation.findMany({
-      where: { messages: { some: { senderId: userId } } }, // Simple query, actual logic would involve participants table
+    const conversations = await this.prisma.conversation.findMany({
+      where: { participants: { some: { id: userId } } },
       include: {
+        participants: {
+          select: { id: true, name: true, role: true, avatarUrl: true }
+        },
         messages: {
           orderBy: { createdAt: 'asc' },
-          include: { sender: true }
+          include: { sender: { select: { id: true, name: true, role: true } } }
         }
-      }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return conversations.map(conv => {
+      const otherParticipant = conv.participants.find(p => p.id !== userId) || conv.participants[0];
+      return {
+        id: conv.id,
+        participant: otherParticipant,
+        latestMessage: conv.messages[conv.messages.length - 1] || null,
+        updatedAt: conv.messages[conv.messages.length - 1]?.createdAt || conv.createdAt
+      };
     });
   }
+
 
   // ─── PROFILE ────────────────────────────────────────────────────────────
   async getProfile(userId: string) {

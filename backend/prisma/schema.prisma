@@ -52,6 +52,7 @@ model User {
 
   notifications Notification[]
   messages      Message[]
+  conversations Conversation[] @relation("ConversationParticipants")
   supportTickets SupportTicket[]
 }
 
@@ -384,7 +385,8 @@ model Conversation {
   type      String   @default("DIRECT") // DIRECT, GROUP
   createdAt DateTime @default(now())
 
-  messages Message[]
+  messages     Message[]
+  participants User[]    @relation("ConversationParticipants")
 }
 
 model Message {

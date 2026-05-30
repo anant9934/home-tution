@@ -17,6 +17,7 @@ import { MailModule } from './modules/mail/mail.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { SupportModule } from './modules/support/support.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { MessagesModule } from './modules/messages/messages.module';
 
 @Module({
   imports: [
@@ -35,7 +36,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     MailModule,
     UploadsModule,
     SupportModule,
-    NotificationsModule
+    NotificationsModule,
+    MessagesModule
   ],
   controllers: [AppController],
   providers: [AppService],

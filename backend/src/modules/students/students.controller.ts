@@ -48,8 +48,8 @@ export class StudentsController {
   }
 
   @Post('quizzes/:id/submit')
-  submitQuiz(@Request() req: any, @Param('id') id: string, @Body('score') score: number) {
-    return this.studentsService.submitQuiz(req.user.userId, id, score);
+  submitQuiz(@Request() req: any, @Param('id') id: string, @Body() body: { answers: Record<string, string> }) {
+    return this.studentsService.submitQuiz(req.user.userId, id, body.answers);
   }
 
   @Get('leaderboard')
