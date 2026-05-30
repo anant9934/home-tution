@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { SUBJECTS } from "@/lib/mock-data";
 import { Skeleton } from "@/components/ui/skeleton";
+import { fetchApi } from "@/lib/api";
 
 function TutorsContent() {
   const searchParams = useSearchParams();
@@ -28,15 +29,13 @@ function TutorsContent() {
   useEffect(() => {
     async function loadTutors() {
       try {
-        const res = await fetch("http://localhost:3001/tutors/public");
-        if (!res.ok) throw new Error("Failed to load tutors");
-        const data = await res.json();
+        const data = await fetchApi("/tutors/public");
         
         // Ensure standard fields exist for UI logic
         const formatted = data.map((t: any) => ({
           ...t,
-          rating: t.rating || 4.8,
-          reviews: t.reviews || Math.floor(Math.random() * 200) + 20,
+          rating: t.rating || 0,
+          reviews: t.reviews || 0,
           hourlyRate: typeof t.hourlyRate === 'string' ? parseInt(t.hourlyRate.replace(/\D/g, '')) : (t.hourlyRate || 500)
         }));
         setTutors(formatted);

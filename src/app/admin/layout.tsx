@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, LayoutDashboard, Users, UserCog, Book, CreditCard, LineChart, Bell, Settings, HelpCircle } from "lucide-react";
+import { BookOpen, LayoutDashboard, Users, UserCog, Book, CreditCard, LineChart, Settings, HelpCircle, Bell } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NotificationsPopover } from "@/components/NotificationsPopover";
 
 const navItems = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -80,9 +81,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             
             <div className="flex items-center gap-4 ml-auto">
-               <button className="relative p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted">
-                 <Bell className="w-5 h-5" />
-               </button>
+               <NotificationsPopover />
             </div>
          </header>
          

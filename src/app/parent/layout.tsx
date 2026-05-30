@@ -6,6 +6,7 @@ import { BookOpen, LayoutDashboard, CalendarCheck, CreditCard, LineChart, Messag
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NotificationsPopover } from "@/components/NotificationsPopover";
 
 const navItems = [
   { name: "Overview", href: "/parent/dashboard", icon: LayoutDashboard },
@@ -113,10 +114,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
                  {firstName}
                </div>
 
-               <button className="relative p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted">
-                 <Bell className="w-5 h-5" />
-                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full border border-white"></span>
-               </button>
+               <NotificationsPopover />
             </div>
          </header>
          

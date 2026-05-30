@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { SUBJECTS } from "@/lib/mock-data";
 import { Skeleton } from "@/components/ui/skeleton";
+import { fetchApi } from "@/lib/api";
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<any[]>([]);
@@ -22,17 +23,15 @@ export default function CoursesPage() {
   useEffect(() => {
     async function loadCourses() {
       try {
-        const res = await fetch("http://localhost:3001/courses/public");
-        if (!res.ok) throw new Error("Failed to load courses");
-        const data = await res.json();
+        const data = await fetchApi("/courses/public");
         
         // Ensure standard fields exist for UI logic even if missing in backend
         const formatted = data.map((c: any) => ({
           ...c,
           subject: c.subject || 'General',
           level: c.class || 'Beginner',
-          rating: c.rating || 4.8,
-          students: c.students || Math.floor(Math.random() * 500) + 50,
+          rating: c.rating || 0,
+          students: c.students || 0,
           price: c.price || 999,
           instructor: c.creator?.name || "Expert Instructor",
           image: c.image || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80"

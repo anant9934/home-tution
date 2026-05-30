@@ -1,9 +1,35 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BookOpen, Users, Star, PlayCircle, CheckCircle2 } from "lucide-react";
+import { ArrowRight, BookOpen, Users, Star, PlayCircle, CheckCircle2, GraduationCap, IndianRupee } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { fetchApi } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function LandingPage() {
+  const [courses, setCourses] = useState<any[]>([]);
+  const [tutors, setTutors] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [coursesData, tutorsData] = await Promise.all([
+          fetchApi("/courses/public"),
+          fetchApi("/tutors/public")
+        ]);
+        setCourses(coursesData.slice(0, 4));
+        setTutors(tutorsData.slice(0, 3));
+      } catch (err) {
+        console.error("Failed to load platform data", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       
@@ -96,6 +122,97 @@ export default function LandingPage() {
                     <p className="text-muted-foreground leading-relaxed">{feat.desc}</p>
                  </div>
                ))}
+            </div>
+
+            {/* DYNAMIC SECTIONS */}
+            <div className="mt-32 max-w-6xl mx-auto space-y-32">
+               
+               {/* FEATURED COURSES */}
+               <div>
+                  <div className="flex justify-between items-end mb-10">
+                     <div>
+                        <h2 className="text-3xl font-bold font-heading mb-3">Featured Courses</h2>
+                        <p className="text-muted-foreground">Start learning today with our most popular programs.</p>
+                     </div>
+                     <Link href="/courses">
+                        <Button variant="outline" className="rounded-full hidden sm:flex">View All Courses <ArrowRight className="w-4 h-4 ml-2" /></Button>
+                     </Link>
+                  </div>
+                  
+                  {loading ? (
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-80 w-full rounded-3xl" />)}
+                     </div>
+                  ) : courses.length > 0 ? (
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {courses.map((course) => (
+                           <Link key={course.id} href="/courses">
+                              <div className="bg-white rounded-3xl border shadow-sm hover:shadow-md transition-shadow overflow-hidden group flex flex-col h-full">
+                                 <div className="relative aspect-[4/3] bg-muted overflow-hidden">
+                                    <img src={course.image || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80"} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    <div className="absolute top-4 left-4">
+                                       <Badge className="bg-white/90 backdrop-blur text-foreground hover:bg-white border-0 shadow-sm">{course.subject || 'General'}</Badge>
+                                    </div>
+                                 </div>
+                                 <div className="p-5 flex-1 flex flex-col">
+                                    <h3 className="font-bold text-lg font-heading group-hover:text-primary transition-colors line-clamp-2 mb-2">{course.title}</h3>
+                                    <div className="mt-auto pt-4 border-t flex items-center justify-between">
+                                       <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                                          <GraduationCap className="w-4 h-4" /> {course.creator?.name || "Expert"}
+                                       </div>
+                                       <div className="font-bold text-primary">₹{course.price || 999}</div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </Link>
+                        ))}
+                     </div>
+                  ) : null}
+               </div>
+
+               {/* TOP TUTORS */}
+               <div>
+                  <div className="flex justify-between items-end mb-10">
+                     <div>
+                        <h2 className="text-3xl font-bold font-heading mb-3">Top Rated Tutors</h2>
+                        <p className="text-muted-foreground">Book 1-on-1 sessions with our verified educators.</p>
+                     </div>
+                     <Link href="/tutors">
+                        <Button variant="outline" className="rounded-full hidden sm:flex">View All Tutors <ArrowRight className="w-4 h-4 ml-2" /></Button>
+                     </Link>
+                  </div>
+                  
+                  {loading ? (
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {[1, 2, 3].map(i => <Skeleton key={i} className="h-48 w-full rounded-3xl" />)}
+                     </div>
+                  ) : tutors.length > 0 ? (
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {tutors.map((tutor) => (
+                           <Link key={tutor.id} href={`/tutors/${tutor.id}`}>
+                              <div className="bg-white rounded-3xl border shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col group p-6">
+                                 <div className="flex gap-4">
+                                    <img src={tutor.image} alt={tutor.name} className="w-16 h-16 rounded-2xl bg-muted object-cover" />
+                                    <div>
+                                       <h3 className="font-bold text-lg font-heading group-hover:text-primary transition-colors flex items-center gap-2">
+                                          {tutor.name}
+                                          {tutor.isVerified && <Badge variant="secondary" className="bg-success/10 text-success hover:bg-success/20 px-1.5 py-0 border-0 h-5">Verified</Badge>}
+                                       </h3>
+                                       <p className="text-sm text-muted-foreground line-clamp-1">{tutor.qualification}</p>
+                                    </div>
+                                 </div>
+                                 <div className="flex flex-wrap gap-2 mt-4">
+                                    {tutor.subjects?.map((sub: string, i: number) => (
+                                       <Badge key={i} variant="outline" className="bg-primary/5 border-primary/20 text-primary">{sub}</Badge>
+                                    ))}
+                                 </div>
+                              </div>
+                           </Link>
+                        ))}
+                     </div>
+                  ) : null}
+               </div>
+
             </div>
             
          </div>

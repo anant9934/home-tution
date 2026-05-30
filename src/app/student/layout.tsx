@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BookOpen, LayoutDashboard, Book, ClipboardList, PenTool, Trophy, CalendarCheck, MessageSquare, User, Bell, HelpCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NotificationsPopover } from "@/components/NotificationsPopover";
 
 const navItems = [
   { name: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
@@ -86,10 +87,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                  <Trophy className="w-4 h-4" /> 1,250 XP
                </div>
                
-               <button className="relative p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted">
-                 <Bell className="w-5 h-5" />
-                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full border border-white"></span>
-               </button>
+               <NotificationsPopover />
             </div>
          </header>
          
