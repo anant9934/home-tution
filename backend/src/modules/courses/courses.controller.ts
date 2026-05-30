@@ -24,6 +24,12 @@ export class CoursesController {
 
   // ─── COURSES ──────────────────────────────────────────────────────────────
 
+  /** GET /courses/public — public list */
+  @Get('public')
+  getPublicCourses() {
+    return this.coursesService.getPublicCourses();
+  }
+
   /** GET /courses — public list (published only by default) */
   @Get()
   findAll(

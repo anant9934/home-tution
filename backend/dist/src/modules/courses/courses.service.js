@@ -30,6 +30,24 @@ let CoursesService = class CoursesService {
             },
         });
     }
+    async getPublicCourses() {
+        const courses = await this.prisma.course.findMany({
+            where: { isPublished: true },
+        });
+        return courses.map((c) => ({
+            id: c.id,
+            title: c.title,
+            subject: c.subject,
+            description: c.description || 'Master the subject with our comprehensive guide.',
+            instructor: 'Dr. Sarah Jenkins',
+            rating: 4.8,
+            students: Math.floor(Math.random() * 2000) + 100,
+            price: 'Free',
+            image: c.thumbnail || 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=500&q=80',
+            duration: '8 weeks',
+            level: 'Intermediate',
+        }));
+    }
     async findAllCourses(filters) {
         return this.prisma.course.findMany({
             where: {

@@ -4,6 +4,19 @@ import { CreateChapterDto, CreateLessonDto } from './dto/create-chapter.dto';
 export declare class CoursesController {
     private readonly coursesService;
     constructor(coursesService: CoursesService);
+    getPublicCourses(): Promise<{
+        id: string;
+        title: string;
+        subject: string;
+        description: string;
+        instructor: string;
+        rating: number;
+        students: number;
+        price: string;
+        image: string;
+        duration: string;
+        level: string;
+    }[]>;
     findAll(subject?: string, cls?: string, board?: string, isPublished?: string): Promise<({
         _count: {
             chapters: number;
@@ -46,11 +59,11 @@ export declare class CoursesController {
         chapters: ({
             lessons: {
                 id: string;
+                duration: number;
                 title: string;
                 order: number;
                 videoUrl: string | null;
                 notesUrl: string | null;
-                duration: number;
                 chapterId: string;
             }[];
         } & {
@@ -71,8 +84,8 @@ export declare class CoursesController {
         }[];
         quizzes: {
             id: string;
-            title: string;
             duration: number;
+            title: string;
             createdBy: string;
             startTime: Date | null;
             courseId: string;
@@ -164,29 +177,29 @@ export declare class CoursesController {
     }>;
     createLesson(chapterId: string, dto: CreateLessonDto): Promise<{
         id: string;
+        duration: number;
         title: string;
         order: number;
         videoUrl: string | null;
         notesUrl: string | null;
-        duration: number;
         chapterId: string;
     }>;
     updateLesson(lessonId: string, dto: Partial<CreateLessonDto>): Promise<{
         id: string;
+        duration: number;
         title: string;
         order: number;
         videoUrl: string | null;
         notesUrl: string | null;
-        duration: number;
         chapterId: string;
     }>;
     deleteLesson(lessonId: string): Promise<{
         id: string;
+        duration: number;
         title: string;
         order: number;
         videoUrl: string | null;
         notesUrl: string | null;
-        duration: number;
         chapterId: string;
     }>;
 }

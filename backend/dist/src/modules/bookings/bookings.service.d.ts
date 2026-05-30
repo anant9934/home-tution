@@ -54,12 +54,12 @@ export declare class BookingsService {
     } & {
         id: string;
         status: import("src/generated/prisma").$Enums.BookingStatus;
-        duration: number;
-        tutorId: string;
         scheduledAt: Date;
-        bookingType: string;
-        meetingLink: string | null;
         studentId: string;
+        tutorId: string;
+        bookingType: string;
+        duration: number;
+        meetingLink: string | null;
         paymentStatus: string;
     }>;
     getStudentBookings(studentUserId: string, status?: string): Promise<({
@@ -96,12 +96,12 @@ export declare class BookingsService {
     } & {
         id: string;
         status: import("src/generated/prisma").$Enums.BookingStatus;
-        duration: number;
-        tutorId: string;
         scheduledAt: Date;
-        bookingType: string;
-        meetingLink: string | null;
         studentId: string;
+        tutorId: string;
+        bookingType: string;
+        duration: number;
+        meetingLink: string | null;
         paymentStatus: string;
     })[]>;
     getTutorBookings(tutorUserId: string, status?: string): Promise<({
@@ -135,12 +135,12 @@ export declare class BookingsService {
     } & {
         id: string;
         status: import("src/generated/prisma").$Enums.BookingStatus;
-        duration: number;
-        tutorId: string;
         scheduledAt: Date;
-        bookingType: string;
-        meetingLink: string | null;
         studentId: string;
+        tutorId: string;
+        bookingType: string;
+        duration: number;
+        meetingLink: string | null;
         paymentStatus: string;
     })[]>;
     getBookingById(id: string): Promise<{
@@ -194,34 +194,34 @@ export declare class BookingsService {
     } & {
         id: string;
         status: import("src/generated/prisma").$Enums.BookingStatus;
-        duration: number;
-        tutorId: string;
         scheduledAt: Date;
-        bookingType: string;
-        meetingLink: string | null;
         studentId: string;
+        tutorId: string;
+        bookingType: string;
+        duration: number;
+        meetingLink: string | null;
         paymentStatus: string;
     }>;
     updateBookingStatus(id: string, tutorUserId: string, dto: UpdateBookingStatusDto): Promise<{
         id: string;
         status: import("src/generated/prisma").$Enums.BookingStatus;
-        duration: number;
-        tutorId: string;
         scheduledAt: Date;
-        bookingType: string;
-        meetingLink: string | null;
         studentId: string;
+        tutorId: string;
+        bookingType: string;
+        duration: number;
+        meetingLink: string | null;
         paymentStatus: string;
     }>;
     cancelBooking(id: string, studentUserId: string): Promise<{
         id: string;
         status: import("src/generated/prisma").$Enums.BookingStatus;
-        duration: number;
-        tutorId: string;
         scheduledAt: Date;
-        bookingType: string;
-        meetingLink: string | null;
         studentId: string;
+        tutorId: string;
+        bookingType: string;
+        duration: number;
+        meetingLink: string | null;
         paymentStatus: string;
     }>;
     startSession(bookingId: string, tutorUserId: string): Promise<{
@@ -281,12 +281,12 @@ export declare class BookingsService {
         } & {
             id: string;
             status: import("src/generated/prisma").$Enums.BookingStatus;
-            duration: number;
-            tutorId: string;
             scheduledAt: Date;
-            bookingType: string;
-            meetingLink: string | null;
             studentId: string;
+            tutorId: string;
+            bookingType: string;
+            duration: number;
+            meetingLink: string | null;
             paymentStatus: string;
         })[];
         total: number;

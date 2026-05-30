@@ -1,63 +1,153 @@
 "use client";
 
-import { useState } from "react";
-import { CalendarCheck, LineChart, CreditCard, MessageSquare, AlertCircle, FileText, Download, CheckCircle2, X, Send, BarChart } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CalendarCheck, LineChart, CreditCard, MessageSquare, AlertCircle, FileText, Download, CheckCircle2, X, Send, BarChart, Clock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { MOCK_PARENT_DASHBOARD } from "@/lib/mock-data";
+import { Skeleton } from "@/components/ui/skeleton";
+import { fetchApi } from "@/lib/api";
+import { toast } from "sonner";
+
+interface DashboardData {
+  childName: string;
+  children: { id: string; name: string; class: string; board: string }[];
+  stats: { attendance: string; overallGrade: string; pendingFees: string; teacherNotesCount: number };
+  performance: { title: string; score: number; color: string }[];
+  homework: { title: string; subject: string; status: string; isWarning: boolean; marks?: number | null; maxMarks?: number }[];
+  feedback: { tutorName: string; subject: string; date: string; note: string }[];
+  upcomingClasses: { id: string; title: string; time: string; tutor: string; meetingLink?: string }[];
+}
 
 export default function ParentDashboardPage() {
-  const data = MOCK_PARENT_DASHBOARD;
-  const { childName, stats, performance, homework, feedback } = data;
-  
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   // Payment State
+  const [payingFeeId, setPayingFeeId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<"IDLE" | "PROCESSING" | "SUCCESS">("IDLE");
-  const [downloading, setDownloading] = useState(false);
 
   // Modals State
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ name: string; tutorUserId?: string } | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
   const [showReport, setShowReport] = useState(false);
-  
-  // Toast State
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const handlePayment = () => {
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
+      const result = await fetchApi("/parents/dashboard");
+      setData(result);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePayment = async () => {
     setPaymentStatus("PROCESSING");
-    setTimeout(() => {
+    try {
+      // Find the first pending fee to pay
+      const feesData = await fetchApi("/parents/fees");
+      const pendingFee = feesData?.fees?.find((f: any) => f.status === "PENDING");
+      if (!pendingFee) {
+        toast.error("No pending fees found");
+        setPaymentStatus("IDLE");
+        return;
+      }
+      setPayingFeeId(pendingFee.id);
+      const result = await fetchApi(`/parents/fees/${pendingFee.id}/pay`, { method: "POST" });
       setPaymentStatus("SUCCESS");
-    }, 1500);
+      toast.success(`Payment successful! Transaction: ${result.transactionId}`);
+      // Reload dashboard to refresh stats
+      setTimeout(() => loadDashboard(), 2000);
+    } catch (err: any) {
+      toast.error(err.message);
+      setPaymentStatus("IDLE");
+    }
   };
 
-  const handleDownload = () => {
-     setDownloading(true);
-     setTimeout(() => {
-        setDownloading(false);
-        setToastMessage("Receipt downloaded successfully.");
-        setTimeout(() => setToastMessage(null), 3000);
-     }, 1000);
+  const handleSendReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyText.trim() || !replyingTo) return;
+
+    setSendingReply(true);
+    try {
+      // For now we use the tutor name to find the tutor — in production you'd pass tutorUserId
+      await fetchApi("/parents/messages", {
+        method: "POST",
+        body: JSON.stringify({
+          tutorUserId: replyingTo.tutorUserId || replyingTo.name,
+          messageText: replyText,
+        }),
+      });
+      toast.success("Message sent successfully!");
+      setReplyingTo(null);
+      setReplyText("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send message");
+    } finally {
+      setSendingReply(false);
+    }
   };
 
-  const handleSendReply = (e: React.FormEvent) => {
-     e.preventDefault();
-     setReplyingTo(null);
-     setReplyText("");
-     setToastMessage("Message sent successfully!");
-     setTimeout(() => setToastMessage(null), 3000);
-  };
+  // Loading skeleton
+  if (loading) {
+    return (
+      <div className="space-y-8 pb-20 lg:pb-8">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          {[1, 2, 3, 4].map(i => (
+            <Card key={i} className="rounded-2xl"><CardContent className="p-5 space-y-3">
+              <Skeleton className="h-10 w-10 rounded-xl" />
+              <Skeleton className="h-6 w-20" />
+              <Skeleton className="h-3 w-24" />
+            </CardContent></Card>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <Skeleton className="h-64 w-full rounded-3xl" />
+            <Skeleton className="h-48 w-full rounded-3xl" />
+          </div>
+          <div className="space-y-6">
+            <Skeleton className="h-48 w-full rounded-3xl" />
+            <Skeleton className="h-56 w-full rounded-3xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+          <AlertCircle className="w-8 h-8 text-destructive" />
+        </div>
+        <h2 className="text-xl font-bold font-heading mb-2">Unable to load dashboard</h2>
+        <p className="text-muted-foreground mb-6 max-w-md">{error || "Something went wrong. Please try again."}</p>
+        <Button onClick={loadDashboard} className="rounded-xl">Try Again</Button>
+      </div>
+    );
+  }
+
+  const { childName, stats, performance, homework, feedback, upcomingClasses } = data;
 
   return (
     <div className="space-y-8 pb-20 lg:pb-8 relative">
       
-      {/* TOAST NOTIFICATION */}
-      {toastMessage && (
-         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white shadow-2xl rounded-full px-6 py-3 flex items-center gap-3 animate-in slide-in-from-top-4 fade-in duration-300">
-            <CheckCircle2 className="w-5 h-5 text-success" />
-            <span className="text-sm font-medium">{toastMessage}</span>
-         </div>
-      )}
-
       {/* MESSAGE MODAL */}
       {replyingTo && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
@@ -65,7 +155,7 @@ export default function ParentDashboardPage() {
               <div className="p-6 border-b flex items-center justify-between bg-slate-50">
                  <div>
                     <h3 className="font-bold font-heading text-lg">Message Teacher</h3>
-                    <p className="text-xs text-muted-foreground">To: {replyingTo}</p>
+                    <p className="text-xs text-muted-foreground">To: {replyingTo.name}</p>
                  </div>
                  <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setReplyingTo(null)}>
                     <X className="w-5 h-5" />
@@ -80,8 +170,9 @@ export default function ParentDashboardPage() {
                     placeholder="Type your message here..."
                     className="w-full h-32 p-4 rounded-xl border border-input bg-transparent text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none mb-4"
                  />
-                 <Button type="submit" className="w-full font-bold gap-2">
-                    <Send className="w-4 h-4" /> Send Message
+                 <Button type="submit" className="w-full font-bold gap-2" disabled={sendingReply}>
+                    {sendingReply ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    {sendingReply ? "Sending..." : "Send Message"}
                  </Button>
               </form>
            </div>
@@ -98,8 +189,8 @@ export default function ParentDashboardPage() {
                        <BarChart className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                       <h3 className="font-bold font-heading text-lg">{childName}'s Performance Report</h3>
-                       <p className="text-xs text-muted-foreground">Term 2 Analytics</p>
+                       <h3 className="font-bold font-heading text-lg">{childName}&apos;s Performance Report</h3>
+                       <p className="text-xs text-muted-foreground">Subject-wise Analytics</p>
                     </div>
                  </div>
                  <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setShowReport(false)}>
@@ -111,11 +202,20 @@ export default function ParentDashboardPage() {
                  {/* Overall Score */}
                  <div className="flex items-center gap-6 p-6 border rounded-2xl bg-success/5">
                     <div className="w-24 h-24 rounded-full border-4 border-success flex items-center justify-center shrink-0">
-                       <span className="text-3xl font-bold font-heading text-success">91%</span>
+                       <span className="text-3xl font-bold font-heading text-success">
+                         {performance.length > 0 ? Math.round(performance.reduce((s, p) => s + p.score, 0) / performance.length) : 0}%
+                       </span>
                     </div>
                     <div>
-                       <h4 className="font-bold text-lg">Excellent Progress</h4>
-                       <p className="text-sm text-muted-foreground mt-1">Alex is performing in the top 10% of their cohort. Consistent improvement seen in Science subjects.</p>
+                       <h4 className="font-bold text-lg">
+                         {(() => {
+                           const avg = performance.length > 0 ? performance.reduce((s, p) => s + p.score, 0) / performance.length : 0;
+                           return avg >= 85 ? "Excellent Progress" : avg >= 70 ? "Good Progress" : "Needs Improvement";
+                         })()}
+                       </h4>
+                       <p className="text-sm text-muted-foreground mt-1">
+                         {childName} is performing across {performance.length} subjects. Keep encouraging consistent study habits.
+                       </p>
                     </div>
                  </div>
                  
@@ -127,19 +227,11 @@ export default function ParentDashboardPage() {
                          <div key={i}>
                            <div className="flex justify-between items-end mb-2">
                              <div className="font-semibold text-sm">{perf.title}</div>
-                             <div className={`text-sm font-bold text-${perf.color}`}>{perf.score}%</div>
+                             <div className={`text-sm font-bold ${perf.color === 'success' ? 'text-green-600' : perf.color === 'primary' ? 'text-blue-600' : 'text-amber-600'}`}>{perf.score}%</div>
                            </div>
-                           <Progress value={perf.score} className={`h-3 bg-${perf.color}/20 [&>div]:bg-${perf.color}`} />
+                           <Progress value={perf.score} className="h-3" />
                          </div>
                        ))}
-                       {/* Add a few extra mock subjects for the modal */}
-                       <div>
-                           <div className="flex justify-between items-end mb-2">
-                             <div className="font-semibold text-sm">English Literature</div>
-                             <div className={`text-sm font-bold text-warning`}>78%</div>
-                           </div>
-                           <Progress value={78} className={`h-3 bg-warning/20 [&>div]:bg-warning`} />
-                       </div>
                     </div>
                  </div>
                  
@@ -155,17 +247,22 @@ export default function ParentDashboardPage() {
             <h1 className="text-3xl font-bold font-heading">Overview</h1>
             <p className="text-muted-foreground mt-1">Here is how {childName.split(' ')[0]} is doing this week.</p>
          </div>
+         {data.children && data.children.length > 1 && (
+           <div className="text-sm text-muted-foreground bg-muted px-3 py-1.5 rounded-full">
+             Viewing: <span className="font-semibold text-foreground">{childName}</span>
+           </div>
+         )}
       </div>
       
       {/* SUMMARY WIDGETS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
          {[
-           { label: "Attendance", value: stats.attendance, icon: CalendarCheck, color: "text-primary", bg: "bg-primary/10", note: "Good standing" },
-           { label: "Overall Grade", value: stats.overallGrade, icon: LineChart, color: "text-success", bg: "bg-success/10", note: "Top 15% in class" },
-           { label: "Pending Fees", value: paymentStatus === "SUCCESS" ? "₹0" : stats.pendingFees, icon: CreditCard, color: "text-muted-foreground", bg: "bg-muted", note: paymentStatus === "SUCCESS" ? "All cleared" : "Due next week" },
-           { label: "Teacher Notes", value: stats.teacherNotesCount, icon: MessageSquare, color: "text-warning", bg: "bg-warning/10", note: "Needs review" },
+           { label: "Attendance", value: stats.attendance, icon: CalendarCheck, color: "text-primary", bg: "bg-primary/10", note: parseInt(stats.attendance) >= 85 ? "Good standing" : "Needs improvement" },
+           { label: "Overall Grade", value: stats.overallGrade, icon: LineChart, color: "text-green-600", bg: "bg-green-50", note: `Based on ${performance.length} subjects` },
+           { label: "Pending Fees", value: paymentStatus === "SUCCESS" ? "₹0" : stats.pendingFees, icon: CreditCard, color: "text-muted-foreground", bg: "bg-muted", note: paymentStatus === "SUCCESS" ? "All cleared" : stats.pendingFees === "₹0" ? "All clear" : "Due this month" },
+           { label: "Messages", value: stats.teacherNotesCount, icon: MessageSquare, color: "text-amber-600", bg: "bg-amber-50", note: stats.teacherNotesCount > 0 ? "Unread messages" : "All read" },
          ].map((stat, i) => (
-           <Card key={i} className="rounded-2xl border shadow-sm transition-all">
+           <Card key={i} className="rounded-2xl border shadow-sm transition-all hover:shadow-md">
              <CardContent className="p-5">
                 <div className="flex items-center gap-3 mb-4">
                   <div className={`w-10 h-10 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center`}>
@@ -188,17 +285,21 @@ export default function ParentDashboardPage() {
             <div className="bg-white rounded-3xl border shadow-sm p-6">
                <h3 className="font-bold font-heading mb-6">Recent Performance</h3>
                
-               <div className="space-y-6">
-                  {performance.map((perf, i) => (
-                    <div key={i}>
-                      <div className="flex justify-between items-end mb-2">
-                        <div className="font-semibold text-sm">{perf.title}</div>
-                        <div className={`text-sm font-bold text-${perf.color}`}>{perf.score}%</div>
+               {performance.length > 0 ? (
+                 <div className="space-y-6">
+                    {performance.map((perf, i) => (
+                      <div key={i}>
+                        <div className="flex justify-between items-end mb-2">
+                          <div className="font-semibold text-sm">{perf.title}</div>
+                          <div className={`text-sm font-bold ${perf.color === 'success' ? 'text-green-600' : perf.color === 'primary' ? 'text-blue-600' : 'text-amber-600'}`}>{perf.score}%</div>
+                        </div>
+                        <Progress value={perf.score} className="h-2" />
                       </div>
-                      <Progress value={perf.score} className={`h-2 bg-${perf.color}/20 [&>div]:bg-${perf.color}`} />
-                    </div>
-                  ))}
-               </div>
+                    ))}
+                 </div>
+               ) : (
+                 <p className="text-sm text-muted-foreground text-center py-6">No performance data yet.</p>
+               )}
                
                <Button variant="outline" className="w-full mt-6 rounded-xl text-sm h-10" onClick={() => setShowReport(true)}>
                   View Detailed Report
@@ -210,21 +311,45 @@ export default function ParentDashboardPage() {
                  Homework Status
                </h3>
                
-               <div className="space-y-4">
-                  {homework.map((hw, i) => (
-                    <div key={i} className={`flex items-start gap-4 p-4 border rounded-2xl ${hw.isWarning ? 'border-warning/30 bg-warning/5' : ''}`}>
-                       {hw.isWarning ? <AlertCircle className="w-8 h-8 text-warning shrink-0" /> : <FileText className="w-8 h-8 text-muted-foreground shrink-0" />}
-                       <div className="flex-1">
-                          <h4 className={`font-bold text-sm ${hw.isWarning ? 'text-warning-foreground' : ''}`}>{hw.title}</h4>
-                          <p className="text-xs text-muted-foreground mt-1">{hw.subject}</p>
-                       </div>
-                       <div className={`text-xs font-bold px-2 py-1 rounded-md w-fit ${hw.isWarning ? 'text-warning bg-warning/20' : 'text-success bg-success/10'}`}>
-                         {hw.status}
-                       </div>
+               {homework.length > 0 ? (
+                 <div className="space-y-4">
+                    {homework.map((hw, i) => (
+                      <div key={i} className={`flex items-start gap-4 p-4 border rounded-2xl ${hw.isWarning ? 'border-amber-200 bg-amber-50/50' : ''}`}>
+                         {hw.isWarning ? <AlertCircle className="w-8 h-8 text-amber-500 shrink-0" /> : <FileText className="w-8 h-8 text-muted-foreground shrink-0" />}
+                         <div className="flex-1">
+                            <h4 className={`font-bold text-sm ${hw.isWarning ? '' : ''}`}>{hw.title}</h4>
+                            <p className="text-xs text-muted-foreground mt-1">{hw.subject}</p>
+                         </div>
+                         <div className={`text-xs font-bold px-2 py-1 rounded-md w-fit ${hw.isWarning ? 'text-amber-700 bg-amber-100' : 'text-green-700 bg-green-100'}`}>
+                           {hw.status}
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+               ) : (
+                 <p className="text-sm text-muted-foreground text-center py-6">No homework data yet.</p>
+               )}
+            </div>
+
+            {/* Upcoming Classes */}
+            {upcomingClasses && upcomingClasses.length > 0 && (
+              <div className="bg-white rounded-3xl border shadow-sm p-6">
+                <h3 className="font-bold font-heading mb-4 flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-primary" /> Upcoming Classes
+                </h3>
+                <div className="space-y-3">
+                  {upcomingClasses.map((cls) => (
+                    <div key={cls.id} className="p-4 rounded-2xl border bg-slate-50 relative overflow-hidden">
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+                      <h4 className="font-bold text-sm mb-1">{cls.title}</h4>
+                      <div className="text-xs text-muted-foreground mb-2">
+                        {new Date(cls.time).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })} at {new Date(cls.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} • {cls.tutor}
+                      </div>
                     </div>
                   ))}
-               </div>
-            </div>
+                </div>
+              </div>
+            )}
             
          </div>
          
@@ -234,26 +359,30 @@ export default function ParentDashboardPage() {
             <div className="bg-white rounded-3xl border shadow-sm p-6">
                <h3 className="font-bold font-heading mb-4">Teacher Feedback</h3>
                
-               <div className="space-y-4 divide-y">
-                  {feedback.map((fb, i) => (
-                    <div key={i} className="pt-2 pb-4">
-                       <div className="flex justify-between items-start mb-2">
-                          <div className="font-bold text-sm">{fb.tutorName} <span className="text-muted-foreground font-normal text-xs ml-2">{fb.subject}</span></div>
-                          <span className="text-xs text-muted-foreground">{new Date(fb.date).toLocaleDateString()}</span>
-                       </div>
-                       <p className="text-sm text-muted-foreground leading-relaxed">
-                         "{fb.note}"
-                       </p>
-                       <Button 
-                          variant="link" 
-                          className="px-0 h-auto text-primary mt-2 text-xs font-semibold"
-                          onClick={() => setReplyingTo(fb.tutorName)}
-                       >
-                          Reply to Teacher
-                       </Button>
-                    </div>
-                  ))}
-               </div>
+               {feedback.length > 0 ? (
+                 <div className="space-y-4 divide-y">
+                    {feedback.map((fb, i) => (
+                      <div key={i} className="pt-2 pb-4">
+                         <div className="flex justify-between items-start mb-2">
+                            <div className="font-bold text-sm">{fb.tutorName} <span className="text-muted-foreground font-normal text-xs ml-2">{fb.subject}</span></div>
+                            <span className="text-xs text-muted-foreground">{new Date(fb.date).toLocaleDateString()}</span>
+                         </div>
+                         <p className="text-sm text-muted-foreground leading-relaxed">
+                           &quot;{fb.note}&quot;
+                         </p>
+                         <Button 
+                            variant="link" 
+                            className="px-0 h-auto text-primary mt-2 text-xs font-semibold"
+                            onClick={() => setReplyingTo({ name: fb.tutorName })}
+                         >
+                            Reply to Teacher
+                         </Button>
+                      </div>
+                    ))}
+                 </div>
+               ) : (
+                 <p className="text-sm text-muted-foreground text-center py-6">No feedback yet.</p>
+               )}
             </div>
             
             <div className="bg-primary/5 border border-primary/10 rounded-3xl p-6 relative overflow-hidden transition-all duration-500">
@@ -262,44 +391,40 @@ export default function ParentDashboardPage() {
                
                {paymentStatus === "SUCCESS" ? (
                   <div className="relative z-10 bg-white p-8 rounded-2xl shadow-sm text-center mt-6 animate-in zoom-in-95 duration-300">
-                     <div className="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-4 relative">
-                        <div className="absolute inset-0 bg-success/20 rounded-full animate-ping"></div>
-                        <CheckCircle2 className="w-8 h-8 text-success relative z-10" />
+                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 relative">
+                        <div className="absolute inset-0 bg-green-200 rounded-full animate-ping"></div>
+                        <CheckCircle2 className="w-8 h-8 text-green-600 relative z-10" />
                      </div>
                      <h4 className="text-xl font-bold font-heading mb-1">Payment Successful</h4>
-                     <p className="text-sm text-muted-foreground">Thank you! Your fee of {stats.pendingFees} has been paid.</p>
-                     <Button 
-                        variant="outline" 
-                        className="mt-6 rounded-xl text-sm gap-2" 
-                        onClick={handleDownload}
-                        disabled={downloading}
-                     >
-                        {downloading ? "Downloading..." : <><Download className="w-4 h-4" /> Download Receipt</>}
-                     </Button>
+                     <p className="text-sm text-muted-foreground">Thank you! Your fee has been paid.</p>
                   </div>
                ) : (
                   <>
-                     <p className="text-xs text-muted-foreground mb-6 relative z-10">Next installment due next month.</p>
+                     <p className="text-xs text-muted-foreground mb-6 relative z-10">Current fee status for {childName.split(' ')[0]}.</p>
                      
                      <div className="bg-white p-4 rounded-2xl shadow-sm border mb-4 relative z-10 flex justify-between items-center">
                         <div>
-                          <div className="text-xs text-muted-foreground font-medium mb-1">{new Date(new Date().setMonth(new Date().getMonth() + 1)).toLocaleString('default', { month: 'long', year: 'numeric' })} Installment</div>
+                          <div className="text-xs text-muted-foreground font-medium mb-1">Outstanding Amount</div>
                           <div className="font-bold text-lg">{stats.pendingFees}</div>
                         </div>
-                        <div className="text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                          Due: {new Date(new Date().setDate(10)).toLocaleDateString('default', { month: 'short', day: 'numeric' })}
+                        <div className={`text-xs font-bold px-2 py-1 rounded-md ${stats.pendingFees === '₹0' ? 'text-green-700 bg-green-100' : 'text-amber-700 bg-amber-100'}`}>
+                          {stats.pendingFees === "₹0" ? "All Clear" : "Pending"}
                         </div>
                      </div>
                      
-                     <div className="flex gap-3 relative z-10">
-                        <Button 
-                          onClick={handlePayment} 
-                          disabled={paymentStatus === "PROCESSING"}
-                          className="flex-1 rounded-xl font-semibold shadow-sm transition-all"
-                        >
-                          {paymentStatus === "PROCESSING" ? "Processing securely..." : "Pay Now"}
-                        </Button>
-                     </div>
+                     {stats.pendingFees !== "₹0" && (
+                       <div className="flex gap-3 relative z-10">
+                          <Button 
+                            onClick={handlePayment} 
+                            disabled={paymentStatus === "PROCESSING"}
+                            className="flex-1 rounded-xl font-semibold shadow-sm transition-all"
+                          >
+                            {paymentStatus === "PROCESSING" ? (
+                              <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Processing...</>
+                            ) : "Pay Now"}
+                          </Button>
+                       </div>
+                     )}
                   </>
                )}
             </div>

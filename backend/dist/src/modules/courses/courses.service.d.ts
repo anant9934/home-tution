@@ -17,6 +17,19 @@ export declare class CoursesService {
         isPublished: boolean;
         createdBy: string;
     }>;
+    getPublicCourses(): Promise<{
+        id: string;
+        title: string;
+        subject: string;
+        description: string;
+        instructor: string;
+        rating: number;
+        students: number;
+        price: string;
+        image: string;
+        duration: string;
+        level: string;
+    }[]>;
     findAllCourses(filters: {
         subject?: string;
         class?: string;
@@ -45,11 +58,11 @@ export declare class CoursesService {
         chapters: ({
             lessons: {
                 id: string;
+                duration: number;
                 title: string;
                 order: number;
                 videoUrl: string | null;
                 notesUrl: string | null;
-                duration: number;
                 chapterId: string;
             }[];
         } & {
@@ -70,8 +83,8 @@ export declare class CoursesService {
         }[];
         quizzes: {
             id: string;
-            title: string;
             duration: number;
+            title: string;
             createdBy: string;
             startTime: Date | null;
             courseId: string;
@@ -150,29 +163,29 @@ export declare class CoursesService {
     }>;
     createLesson(chapterId: string, dto: CreateLessonDto): Promise<{
         id: string;
+        duration: number;
         title: string;
         order: number;
         videoUrl: string | null;
         notesUrl: string | null;
-        duration: number;
         chapterId: string;
     }>;
     updateLesson(lessonId: string, dto: Partial<CreateLessonDto>): Promise<{
         id: string;
+        duration: number;
         title: string;
         order: number;
         videoUrl: string | null;
         notesUrl: string | null;
-        duration: number;
         chapterId: string;
     }>;
     deleteLesson(lessonId: string): Promise<{
         id: string;
+        duration: number;
         title: string;
         order: number;
         videoUrl: string | null;
         notesUrl: string | null;
-        duration: number;
         chapterId: string;
     }>;
     getMyCourses(tutorUserId: string): Promise<({

@@ -27,6 +27,28 @@ export class CoursesService {
     });
   }
 
+  async getPublicCourses() {
+    const courses = await this.prisma.course.findMany({
+      where: { isPublished: true },
+    });
+
+    return courses.map((c) => ({
+      id: c.id,
+      title: c.title,
+      subject: c.subject,
+      description:
+        c.description || 'Master the subject with our comprehensive guide.',
+      instructor: 'Dr. Sarah Jenkins', // Fallback since relation isn't explicitly defined in schema
+      rating: 4.8,
+      students: Math.floor(Math.random() * 2000) + 100, // Mocked metrics
+      price: 'Free',
+      image:
+        c.thumbnail || 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=500&q=80',
+      duration: '8 weeks',
+      level: 'Intermediate',
+    }));
+  }
+
   async findAllCourses(filters: {
     subject?: string;
     class?: string;

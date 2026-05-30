@@ -17,10 +17,17 @@ const common_1 = require("@nestjs/common");
 const tutors_service_1 = require("./tutors.service");
 const create_tutor_dto_1 = require("./dto/create-tutor.dto");
 const update_tutor_dto_1 = require("./dto/update-tutor.dto");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 let TutorsController = class TutorsController {
     tutorsService;
     constructor(tutorsService) {
         this.tutorsService = tutorsService;
+    }
+    getDashboard(req) {
+        return this.tutorsService.getDashboard(req.user.userId);
+    }
+    getPublicTutors() {
+        return this.tutorsService.getPublicTutors();
     }
     create(createTutorDto) {
         return this.tutorsService.create(createTutorDto);
@@ -39,6 +46,20 @@ let TutorsController = class TutorsController {
     }
 };
 exports.TutorsController = TutorsController;
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('dashboard'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], TutorsController.prototype, "getDashboard", null);
+__decorate([
+    (0, common_1.Get)('public'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], TutorsController.prototype, "getPublicTutors", null);
 __decorate([
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),

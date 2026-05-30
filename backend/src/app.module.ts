@@ -11,9 +11,24 @@ import { QuizzesModule } from './modules/quizzes/quizzes.module';
 import { AssignmentsModule } from './modules/assignments/assignments.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { ParentsModule } from './modules/parents/parents.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, StudentsModule, TutorsModule, CoursesModule, BookingsModule, QuizzesModule, AssignmentsModule, PaymentsModule, PrismaModule],
+  imports: [
+    AuthModule, 
+    UsersModule, 
+    StudentsModule, 
+    TutorsModule, 
+    CoursesModule, 
+    BookingsModule, 
+    QuizzesModule, 
+    AssignmentsModule, 
+    PaymentsModule, 
+    PrismaModule,
+    AdminModule,
+    ParentsModule
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

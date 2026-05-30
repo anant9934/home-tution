@@ -1,11 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
 import { TutorsService } from './tutors.service';
 import { CreateTutorDto } from './dto/create-tutor.dto';
 import { UpdateTutorDto } from './dto/update-tutor.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('tutors')
 export class TutorsController {
   constructor(private readonly tutorsService: TutorsService) {}
+
+  @UseGuards(JwtAuthGuard)
+  @Get('dashboard')
+  getDashboard(@Request() req: any) {
+    return this.tutorsService.getDashboard(req.user.userId);
+  }
+
+  @Get('public')
+  getPublicTutors() {
+    return this.tutorsService.getPublicTutors();
+  }
 
   @Post()
   create(@Body() createTutorDto: CreateTutorDto) {

@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// CORE MODELS
+// -----------------------------------------------------------------------------
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  role      Role     @default(STUDENT)
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tutorProfile TutorProfile?
+  enrollments  Enrollment[]
+  transactions Transaction[]
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  PARENT
+  ADMIN
+}
+
+model TutorProfile {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjects       String[] // e.g. ["Mathematics", "Physics"]
+  hourlyRate     Float
+  rating         Float    @default(0.0)
+  totalStudents  Int      @default(0)
+  status         TutorStatus @default(PENDING)
+  bio            String?
+
+  courses        Course[]
+}
+
+enum TutorStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model Course {
+  id             String   @id @default(uuid())
+  title          String
+  subject        String
+  description    String?
+  tutorProfileId String
+  tutor          TutorProfile @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)
+  price          Float?
+  
+  enrollments    Enrollment[]
+  quizzes        Quiz[]
+  assignments    Assignment[]
+  attendance     AttendanceRecord[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// -----------------------------------------------------------------------------
+// STUDENT ACTIVITY MODELS
+// -----------------------------------------------------------------------------
+
+model Enrollment {
+  id         String   @id @default(uuid())
+  studentId  String
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress   Int      @default(0) // percentage
+  xpEarned   Int      @default(0)
+  streak     Int      @default(0)
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([studentId, courseId])
+}
+
+model Assignment {
+  id          String   @id @default(uuid())
+  title       String
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  dueDate     DateTime
+  status      ActivityStatus @default(PENDING)
+  score       String?
+  
+  createdAt   DateTime @default(now())
+}
+
+model Quiz {
+  id          String   @id @default(uuid())
+  title       String
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  questions   Int      @default(5)
+  duration    String   @default("15 mins")
+  status      ActivityStatus @default(PENDING)
+  score       String?
+
+  createdAt   DateTime @default(now())
+}
+
+enum ActivityStatus {
+  PENDING
+  SUBMITTED
+  COMPLETED
+  LATE
+}
+
+model AttendanceRecord {
+  id          String   @id @default(uuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  date        DateTime @default(now())
+  status      AttendanceStatus
+  type        String?  // e.g. "Excused"
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+}
+
+// -----------------------------------------------------------------------------
+// COMMUNICATION & ADMIN MODELS
+// -----------------------------------------------------------------------------
+
+model Message {
+  id          String   @id @default(uuid())
+  senderId    String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId  String
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  text        String
+  isRead      Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Float
+  status      String   @default("Completed")
+  description String?
+  
+  createdAt   DateTime @default(now())
+}

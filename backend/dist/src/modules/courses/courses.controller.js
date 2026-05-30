@@ -25,6 +25,9 @@ let CoursesController = class CoursesController {
     constructor(coursesService) {
         this.coursesService = coursesService;
     }
+    getPublicCourses() {
+        return this.coursesService.getPublicCourses();
+    }
     findAll(subject, cls, board, isPublished) {
         return this.coursesService.findAllCourses({
             subject,
@@ -71,6 +74,12 @@ let CoursesController = class CoursesController {
     }
 };
 exports.CoursesController = CoursesController;
+__decorate([
+    (0, common_1.Get)('public'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], CoursesController.prototype, "getPublicCourses", null);
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)('subject')),

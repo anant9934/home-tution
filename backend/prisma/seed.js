@@ -186,7 +186,7 @@ async function seedParents() {
   return parentIds;
 }
 
-async function seedXPAndBadges(studentIds) {
+async function seedXPAndBadges(studentUserIds) {
   console.log('⭐ Seeding XP and Gamification...');
   
   // Create some badges
@@ -205,8 +205,15 @@ async function seedXPAndBadges(studentIds) {
     `, [b.id, b.name, b.icon, b.description]);
   }
 
+  // Get studentProfile IDs
+  const studentProfiles = [];
+  for (const sId of studentUserIds) {
+    const sp = await sql.query(`SELECT id FROM "StudentProfile" WHERE "userId" = $1`, [sId]);
+    if (sp.length > 0) studentProfiles.push(sp[0].id);
+  }
+
   // Give each student some XP
-  for (const sid of studentIds) {
+  for (const sid of studentProfiles) {
     const xpPoints = randInt(50, 2500);
     await sql.query(`
       INSERT INTO "XP" (id, "studentId", points, source, "createdAt")
@@ -252,6 +259,302 @@ async function seedNotifications(studentIds, tutorIds) {
   console.log(`  ✅ Notifications seeded`);
 }
 
+// ─── Link Parents to Students ────────────────────────────────────────────────
+async function linkParentsToStudents(studentIds, parentIds) {
+  console.log('🔗 Linking Parents to Students...');
+  // Get parentProfile IDs from the user IDs
+  const limit = Math.min(studentIds.length, parentIds.length);
+  for (let i = 0; i < limit; i++) {
+    const parentProfile = await sql.query(`
+      SELECT id FROM "ParentProfile" WHERE "userId" = $1
+    `, [parentIds[i]]);
+    if (parentProfile.length > 0) {
+      await sql.query(`
+        UPDATE "StudentProfile" SET "parentId" = $1 WHERE "userId" = $2
+      `, [parentProfile[0].id, studentIds[i]]);
+    }
+  }
+  console.log(`  ✅ ${limit} students linked to parents`);
+}
+
+// ─── Seed Bookings, Class Sessions & Attendance ─────────────────────────────
+async function seedAttendance(studentIds, tutorIds) {
+  console.log('📅 Seeding Bookings, Sessions & Attendance...');
+  
+  // Get tutorProfile IDs
+  const tutorProfiles = [];
+  for (const tId of tutorIds) {
+    const tp = await sql.query(`SELECT id FROM "TutorProfile" WHERE "userId" = $1`, [tId]);
+    if (tp.length > 0) tutorProfiles.push(tp[0].id);
+  }
+  if (tutorProfiles.length === 0) {
+    console.log('  ⚠️ No tutor profiles found, skipping attendance');
+    return;
+  }
+
+  // Get studentProfile IDs
+  const studentProfiles = [];
+  for (const sId of studentIds) {
+    const sp = await sql.query(`SELECT id FROM "StudentProfile" WHERE "userId" = $1`, [sId]);
+    if (sp.length > 0) studentProfiles.push(sp[0].id);
+  }
+
+  let bookingCount = 0;
+  for (const spId of studentProfiles) {
+    const tpId = pick(tutorProfiles);
+    // Create 15 completed bookings spread over the last 30 days
+    for (let d = 1; d <= 15; d++) {
+      const daysAgo = d * 2;
+      const scheduledDate = new Date();
+      scheduledDate.setDate(scheduledDate.getDate() - daysAgo);
+      scheduledDate.setHours(10 + (d % 8), 0, 0, 0);
+
+      const bookingId = uid();
+      await sql.query(`
+        INSERT INTO "Booking" (id, "studentId", "tutorId", "bookingType", "scheduledAt", duration, status, "paymentStatus")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT DO NOTHING
+      `, [bookingId, spId, tpId, pick(['ONE_ON_ONE', 'LIVE_CLASS']), scheduledDate.toISOString(), 60, 'COMPLETED', 'SUCCESS']);
+
+      // Create ClassSession
+      const sessionId = uid();
+      const endedAt = new Date(scheduledDate);
+      endedAt.setMinutes(endedAt.getMinutes() + 60);
+      await sql.query(`
+        INSERT INTO "ClassSession" (id, "bookingId", "startedAt", "endedAt", "attendanceStatus")
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT DO NOTHING
+      `, [sessionId, bookingId, scheduledDate.toISOString(), endedAt.toISOString(), 'COMPLETED']);
+
+      // Create Attendance record
+      const status = Math.random() > 0.15 ? 'PRESENT' : (Math.random() > 0.5 ? 'ABSENT' : 'LATE');
+      await sql.query(`
+        INSERT INTO "Attendance" (id, "studentId", "classSessionId", status, "markedBy", "createdAt")
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT DO NOTHING
+      `, [uid(), spId, sessionId, status, tpId, scheduledDate.toISOString()]);
+
+      bookingCount++;
+    }
+
+    // Create 2 upcoming bookings
+    for (let f = 1; f <= 2; f++) {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + f * 2);
+      futureDate.setHours(16, 0, 0, 0);
+      await sql.query(`
+        INSERT INTO "Booking" (id, "studentId", "tutorId", "bookingType", "scheduledAt", duration, status, "meetingLink", "paymentStatus")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT DO NOTHING
+      `, [uid(), spId, tpId, 'ONE_ON_ONE', futureDate.toISOString(), 60, 'CONFIRMED', `https://meet.aura.edu/${uid().slice(0,8)}`, 'SUCCESS']);
+    }
+  }
+  console.log(`  ✅ ${bookingCount} bookings + sessions + attendance records created`);
+}
+
+// ─── Seed Fees ──────────────────────────────────────────────────────────────
+async function seedFees(studentIds) {
+  console.log('💰 Seeding Fees...');
+  
+  const studentProfiles = [];
+  for (const sId of studentIds) {
+    const sp = await sql.query(`SELECT id FROM "StudentProfile" WHERE "userId" = $1`, [sId]);
+    if (sp.length > 0) studentProfiles.push(sp[0].id);
+  }
+
+  let feeCount = 0;
+  for (const spId of studentProfiles) {
+    // Create fees for the last 4 months + current month
+    for (let m = 0; m < 5; m++) {
+      const feeDate = new Date();
+      feeDate.setMonth(feeDate.getMonth() - m);
+      const dueDate = new Date(feeDate.getFullYear(), feeDate.getMonth(), 10);
+      const amount = pick([3000, 3500, 4000, 4500, 5000]);
+      const isPaid = m > 0 ? (Math.random() > 0.2 ? 'PAID' : 'PENDING') : 'PENDING'; // Current month mostly pending
+
+      const feeId = uid();
+      await sql.query(`
+        INSERT INTO "Fee" (id, "studentId", amount, "dueDate", status, month, year)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT DO NOTHING
+      `, [feeId, spId, amount, dueDate.toISOString(), isPaid, feeDate.getMonth() + 1, feeDate.getFullYear()]);
+
+      // Create payment record for paid fees
+      if (isPaid === 'PAID') {
+        const paidAt = new Date(dueDate);
+        paidAt.setDate(paidAt.getDate() - randInt(0, 5));
+        await sql.query(`
+          INSERT INTO "Payment" (id, "feeId", "paymentGateway", "transactionId", amount, status, "paidAt")
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          ON CONFLICT DO NOTHING
+        `, [uid(), feeId, 'RAZORPAY', `txn_${uid().replace(/-/g, '').slice(0, 16)}`, amount, 'SUCCESS', paidAt.toISOString()]);
+      }
+      feeCount++;
+    }
+  }
+  console.log(`  ✅ ${feeCount} fee records created`);
+}
+
+// ─── Seed Quiz Attempts & Submissions ───────────────────────────────────────
+async function seedQuizAttemptsAndSubmissions(studentIds) {
+  console.log('📝 Seeding Quiz Attempts & Submissions...');
+
+  const studentProfiles = [];
+  for (const sId of studentIds) {
+    const sp = await sql.query(`SELECT id FROM "StudentProfile" WHERE "userId" = $1`, [sId]);
+    if (sp.length > 0) studentProfiles.push(sp[0].id);
+  }
+
+  // Get existing quizzes and assignments
+  const quizzes = await sql`SELECT id, "totalMarks" FROM "Quiz" LIMIT 10`;
+  const assignments = await sql`SELECT id, "maxMarks" FROM "Assignment" LIMIT 10`;
+
+  for (const spId of studentProfiles) {
+    // Quiz attempts
+    for (const quiz of quizzes) {
+      const score = randInt(Math.floor(quiz.totalMarks * 0.4), quiz.totalMarks);
+      await sql.query(`
+        INSERT INTO "QuizAttempt" (id, "quizId", "studentId", score, "startedAt", "submittedAt", "timeTaken")
+        VALUES ($1, $2, $3, $4, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days' + INTERVAL '30 minutes', $5)
+        ON CONFLICT DO NOTHING
+      `, [uid(), quiz.id, spId, score, randInt(600, 1800)]);
+    }
+
+    // Assignment submissions
+    for (const assignment of assignments) {
+      const marks = randInt(Math.floor(assignment.maxMarks * 0.5), assignment.maxMarks);
+      await sql.query(`
+        INSERT INTO "Submission" (id, "assignmentId", "studentId", "submissionUrl", "submittedAt", marks, feedback)
+        VALUES ($1, $2, $3, $4, NOW() - INTERVAL '3 days', $5, $6)
+        ON CONFLICT DO NOTHING
+      `, [uid(), assignment.id, spId, `https://storage.aura.edu/submissions/${uid()}.pdf`, marks, pick(['Good work!', 'Needs improvement in section 2.', 'Excellent understanding of concepts.', 'Review the last question.', null])]);
+    }
+  }
+  console.log(`  ✅ Quiz attempts and submissions seeded`);
+}
+
+// ─── Seed Courses, Chapters, Assignments, Quizzes ───────────────────────────
+async function seedCoursesAndContent(tutorIds) {
+  console.log('📚 Seeding Courses & Content...');
+
+  const tutorProfiles = [];
+  for (const tId of tutorIds) {
+    const tp = await sql.query(`SELECT id FROM "TutorProfile" WHERE "userId" = $1`, [tId]);
+    if (tp.length > 0) tutorProfiles.push(tp[0].id);
+  }
+  if (tutorProfiles.length === 0) return;
+
+  const courses = [
+    { title: 'Mastering Advanced Calculus', subject: 'Mathematics', class: '12th', board: 'CBSE' },
+    { title: 'Organic Chemistry Foundations', subject: 'Chemistry', class: '11th', board: 'CBSE' },
+    { title: 'Newtonian Mechanics', subject: 'Physics', class: '12th', board: 'CBSE' },
+    { title: 'Python Programming', subject: 'Computer Science', class: '10th', board: 'CBSE' },
+    { title: 'English Literature', subject: 'English', class: '10th', board: 'ICSE' },
+  ];
+
+  for (const c of courses) {
+    const courseId = uid();
+    const tutorId = pick(tutorProfiles);
+    await sql.query(`
+      INSERT INTO "Course" (id, title, description, subject, class, board, "createdBy", "isPublished", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, true, NOW(), NOW())
+      ON CONFLICT DO NOTHING
+    `, [courseId, c.title, `A comprehensive course on ${c.subject}`, c.subject, c.class, c.board, tutorId]);
+
+    // Create chapters
+    for (let ch = 1; ch <= 3; ch++) {
+      const chapterId = uid();
+      await sql.query(`
+        INSERT INTO "Chapter" (id, "courseId", title, "order")
+        VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING
+      `, [chapterId, courseId, `Chapter ${ch}: ${c.subject} Fundamentals Part ${ch}`, ch]);
+
+      // Create lessons
+      for (let l = 1; l <= 2; l++) {
+        await sql.query(`
+          INSERT INTO "Lesson" (id, "chapterId", title, duration, "order")
+          VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING
+        `, [uid(), chapterId, `Lesson ${l}: Topic ${l}`, randInt(20, 60), l]);
+      }
+    }
+
+    // Create assignment
+    const deadline = new Date();
+    deadline.setDate(deadline.getDate() + randInt(3, 14));
+    await sql.query(`
+      INSERT INTO "Assignment" (id, title, description, "courseId", "createdBy", deadline, "maxMarks")
+      VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING
+    `, [uid(), `${c.subject} Assignment`, `Complete the ${c.subject} worksheet`, courseId, tutorId, deadline.toISOString(), pick([50, 100])]);
+
+    // Create quiz with questions
+    const quizId = uid();
+    const totalMarks = 20;
+    await sql.query(`
+      INSERT INTO "Quiz" (id, title, "courseId", duration, "totalMarks", "createdBy")
+      VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING
+    `, [quizId, `${c.subject} Quiz`, courseId, 30, totalMarks, tutorId]);
+
+    // Create questions for the quiz
+    for (let q = 1; q <= 4; q++) {
+      await sql.query(`
+        INSERT INTO "Question" (id, "quizId", "questionText", type, options, "correctAnswer", marks)
+        VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING
+      `, [uid(), quizId, `${c.subject} question ${q}?`, 'MCQ', JSON.stringify(['Option A', 'Option B', 'Option C', 'Option D']), 'Option A', 5]);
+    }
+  }
+  console.log(`  ✅ ${courses.length} courses with chapters, lessons, assignments, and quizzes created`);
+}
+
+// ─── Seed Conversations & Messages ──────────────────────────────────────────
+async function seedMessages(parentIds, tutorIds) {
+  console.log('💬 Seeding Conversations & Messages...');
+
+  const tutorMessages = [
+    'Your child has shown great improvement this week.',
+    'Please ensure homework is submitted on time.',
+    'Excellent performance in the last test!',
+    'We should discuss the upcoming exam preparation strategy.',
+    'Your child needs to focus more on problem-solving skills.',
+  ];
+  const parentReplies = [
+    'Thank you for the update!',
+    'We will make sure of that.',
+    'That is great to hear!',
+    'Yes, let us schedule a call to discuss.',
+    'We are working on it at home as well.',
+  ];
+
+  let msgCount = 0;
+  const limit = Math.min(parentIds.length, tutorIds.length);
+  for (let i = 0; i < limit; i++) {
+    const convId = uid();
+    await sql.query(`
+      INSERT INTO "Conversation" (id, type, "createdAt")
+      VALUES ($1, 'DIRECT', NOW()) ON CONFLICT DO NOTHING
+    `, [convId]);
+
+    // Tutor sends a message
+    const daysAgo = randInt(1, 7);
+    const msgDate = new Date();
+    msgDate.setDate(msgDate.getDate() - daysAgo);
+    await sql.query(`
+      INSERT INTO "Message" (id, "conversationId", "senderId", "messageText", seen, "createdAt")
+      VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING
+    `, [uid(), convId, tutorIds[i], pick(tutorMessages), true, msgDate.toISOString()]);
+
+    // Parent replies
+    const replyDate = new Date(msgDate);
+    replyDate.setHours(replyDate.getHours() + randInt(1, 12));
+    await sql.query(`
+      INSERT INTO "Message" (id, "conversationId", "senderId", "messageText", seen, "createdAt")
+      VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING
+    `, [uid(), convId, parentIds[i], pick(parentReplies), false, replyDate.toISOString()]);
+
+    msgCount += 2;
+  }
+  console.log(`  ✅ ${msgCount} messages in ${limit} conversations created`);
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 async function main() {
   console.log('\n🌱 Starting database seed...\n');
@@ -261,8 +564,14 @@ async function main() {
     const studentIds = await seedStudents();
     const tutorIds = await seedTutors();
     const parentIds = await seedParents();
+    await linkParentsToStudents(studentIds, parentIds);
+    await seedCoursesAndContent(tutorIds);
+    await seedAttendance(studentIds, tutorIds);
+    await seedFees(studentIds);
+    await seedQuizAttemptsAndSubmissions(studentIds);
     await seedXPAndBadges(studentIds);
     await seedNotifications(studentIds, tutorIds);
+    await seedMessages(parentIds, tutorIds);
     
     // Print summary
     console.log('\n🎉 Seed complete! Summary:');
@@ -280,7 +589,10 @@ async function main() {
         (SELECT COUNT(*) FROM "TutorProfile") as tutors,
         (SELECT COUNT(*) FROM "ParentProfile") as parents,
         (SELECT COUNT(*) FROM "Badge") as badges,
-        (SELECT COUNT(*) FROM "XP") as xp_records
+        (SELECT COUNT(*) FROM "XP") as xp_records,
+        (SELECT COUNT(*) FROM "Fee") as fees,
+        (SELECT COUNT(*) FROM "Attendance") as attendance,
+        (SELECT COUNT(*) FROM "Conversation") as conversations
     `;
     console.log('\nProfile counts:', profiles[0]);
     

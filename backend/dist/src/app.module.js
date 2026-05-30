@@ -20,12 +20,27 @@ const quizzes_module_1 = require("./modules/quizzes/quizzes.module");
 const assignments_module_1 = require("./modules/assignments/assignments.module");
 const payments_module_1 = require("./modules/payments/payments.module");
 const prisma_module_1 = require("./prisma/prisma.module");
+const admin_module_1 = require("./modules/admin/admin.module");
+const parents_module_1 = require("./modules/parents/parents.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [auth_module_1.AuthModule, users_module_1.UsersModule, students_module_1.StudentsModule, tutors_module_1.TutorsModule, courses_module_1.CoursesModule, bookings_module_1.BookingsModule, quizzes_module_1.QuizzesModule, assignments_module_1.AssignmentsModule, payments_module_1.PaymentsModule, prisma_module_1.PrismaModule],
+        imports: [
+            auth_module_1.AuthModule,
+            users_module_1.UsersModule,
+            students_module_1.StudentsModule,
+            tutors_module_1.TutorsModule,
+            courses_module_1.CoursesModule,
+            bookings_module_1.BookingsModule,
+            quizzes_module_1.QuizzesModule,
+            assignments_module_1.AssignmentsModule,
+            payments_module_1.PaymentsModule,
+            prisma_module_1.PrismaModule,
+            admin_module_1.AdminModule,
+            parents_module_1.ParentsModule
+        ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
     })
