@@ -1,22 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { Users, Clock, IndianRupee, Star, Calendar, Video, CheckCircle2, XCircle, Mic, MicOff, Camera, CameraOff, MonitorUp, Badge as BadgeIcon, Plus, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Users, Clock, IndianRupee, Star, Calendar, Video, CheckCircle2, XCircle, Mic, MicOff, Camera, CameraOff, MonitorUp, Plus, X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MOCK_TEACHER_DASHBOARD } from "@/lib/mock-data";
+import { Skeleton } from "@/components/ui/skeleton";
+import { fetchApi } from "@/lib/api";
+import { toast } from "sonner";
 
 export default function TeacherDashboardPage() {
-  const data = MOCK_TEACHER_DASHBOARD;
-  
-  // Dynamic Stats State
-  const [activeStudents, setActiveStudents] = useState(data.stats.activeStudents);
-  const [upcomingSchedule, setUpcomingSchedule] = useState(data.upcomingSchedule);
-  
-  // Interactive state for pending demo requests
-  const [demoRequests, setDemoRequests] = useState(data.pendingDemoRequests);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Modals State
   const [activeMeeting, setActiveMeeting] = useState<any | null>(null);
@@ -31,33 +28,92 @@ export default function TeacherDashboardPage() {
   const [newClassTime, setNewClassTime] = useState("");
   const [newClassStudent, setNewClassStudent] = useState("");
 
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const dashboardData = await fetchApi("/tutors/dashboard");
+        setData(dashboardData);
+      } catch (err: any) {
+        setError(err.message || "Failed to load teacher dashboard");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadDashboard();
+  }, []);
+
   const handleAction = (req: any, action: "approve" | "reject") => {
-     setDemoRequests(demoRequests.filter(r => r.id !== req.id));
-     
      if (action === "approve") {
-        setActiveStudents(prev => prev + 1);
-        setUpcomingSchedule(prev => [...prev, {
-           id: Math.random(),
-           student: req.student,
-           subject: req.subject + " Demo",
-           time: req.requestedTime
-        }]);
+        toast.success("Demo request approved!");
+        // Simulate adding to schedule
+        setData((prev: any) => ({
+          ...prev,
+          actionRequired: prev.actionRequired.filter((r: any) => r.id !== req.id),
+          schedule: [...prev.schedule, {
+             id: Math.random().toString(),
+             student: req.desc,
+             title: "1-on-1 Tuition",
+             subject: req.type + " Demo",
+             time: new Date().toISOString(),
+             status: "PENDING"
+          }]
+        }));
+     } else {
+        toast.error("Demo request rejected.");
+        setData((prev: any) => ({
+          ...prev,
+          actionRequired: prev.actionRequired.filter((r: any) => r.id !== req.id)
+        }));
      }
   };
 
   const handleScheduleClass = (e: React.FormEvent) => {
      e.preventDefault();
-     setUpcomingSchedule(prev => [...prev, {
-        id: Math.random(),
-        student: newClassStudent || "Batch A",
-        subject: newClassSubject || "Extra Class",
-        time: newClassTime || "Tomorrow, 10:00 AM"
-     }]);
+     setData((prev: any) => ({
+        ...prev,
+        schedule: [...prev.schedule, {
+           id: Math.random().toString(),
+           student: newClassStudent || "Batch A",
+           title: newClassSubject || "Extra Class",
+           time: newClassTime || "Tomorrow, 10:00 AM",
+           status: "PENDING"
+        }]
+     }));
      setShowScheduleModal(false);
      setNewClassSubject("");
      setNewClassTime("");
      setNewClassStudent("");
+     toast.success("Extra class scheduled successfully!");
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-8 pb-20 lg:pb-8">
+        <Skeleton className="h-12 w-64 mb-8" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            <Skeleton className="h-64 w-full rounded-3xl" />
+          </div>
+          <div className="space-y-6">
+            <Skeleton className="h-64 w-full rounded-3xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <AlertCircle className="w-12 h-12 text-destructive mb-4" />
+        <h2 className="text-xl font-bold mb-2">Failed to load dashboard</h2>
+        <p className="text-muted-foreground">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-20 lg:pb-8 relative">
@@ -72,8 +128,8 @@ export default function TeacherDashboardPage() {
                     <Video className="w-4 h-4 text-white" />
                  </div>
                  <div>
-                    <div className="font-bold font-heading">{activeMeeting.subject}</div>
-                    <div className="text-xs text-white/60">with {activeMeeting.student}</div>
+                    <div className="font-bold font-heading">{activeMeeting.title || activeMeeting.subject}</div>
+                    <div className="text-xs text-white/60">with {activeMeeting.student || "Student"}</div>
                  </div>
                  <Badge variant="outline" className="border-red-500 text-red-500 animate-pulse ml-2 bg-red-500/10">● REC</Badge>
               </div>
@@ -86,7 +142,7 @@ export default function TeacherDashboardPage() {
               <div className="relative w-full max-w-4xl aspect-video bg-gray-900 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
                  <img src="https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?auto=format&fit=crop&q=80&w=1200" alt="Student" className="w-full h-full object-cover opacity-80" />
                  <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-lg border border-white/10 font-medium">
-                    {activeMeeting.student}
+                    {activeMeeting.student || "Student"}
                  </div>
                  <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white/80 p-2 rounded-lg border border-white/10">
                     <Mic className="w-4 h-4" />
@@ -186,12 +242,12 @@ export default function TeacherDashboardPage() {
       )}
 
       {/* MAIN CONTENT */}
-      <div className="flex justify-between items-end mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
          <div>
             <h1 className="text-3xl font-bold font-heading">Teacher Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Welcome back, {data.teacherName}. Here's your overview.</p>
+            <p className="text-muted-foreground mt-1">Welcome back, {data.tutor.name}. Here's your overview.</p>
          </div>
-         <Button onClick={() => setShowScheduleModal(true)} className="rounded-full font-bold shadow-sm gap-2">
+         <Button onClick={() => setShowScheduleModal(true)} className="rounded-full font-bold shadow-sm gap-2 shrink-0">
             <Plus className="w-4 h-4" /> Schedule Extra Class
          </Button>
       </div>
@@ -199,10 +255,10 @@ export default function TeacherDashboardPage() {
       {/* SUMMARY WIDGETS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
          {[
-           { label: "Active Students", value: activeStudents, icon: Users, color: "text-primary", bg: "bg-primary/10" },
-           { label: "Hours Taught", value: data.stats.hoursTaughtThisMonth, icon: Clock, color: "text-warning", bg: "bg-warning/10" },
-           { label: "Earnings (Month)", value: data.stats.earningsThisMonth, icon: IndianRupee, color: "text-success", bg: "bg-success/10" },
-           { label: "Overall Rating", value: data.stats.rating, icon: Star, color: "text-primary", bg: "bg-primary/10" },
+           { label: "Active Students", value: data.stats.totalStudents, icon: Users, color: "text-primary", bg: "bg-primary/10" },
+           { label: "Today's Classes", value: data.stats.todaysClasses, icon: Clock, color: "text-warning", bg: "bg-warning/10" },
+           { label: "Earnings (Month)", value: data.stats.monthlyEarnings, icon: IndianRupee, color: "text-success", bg: "bg-success/10" },
+           { label: "Pending Tasks", value: data.stats.pendingTasksCount, icon: Star, color: "text-primary", bg: "bg-primary/10" },
          ].map((stat, i) => (
            <Card key={i} className="rounded-2xl border shadow-sm transition-all duration-300">
              <CardContent className="p-5">
@@ -232,24 +288,31 @@ export default function TeacherDashboardPage() {
                </div>
                
                <div className="space-y-4">
-                  {upcomingSchedule.map((cls, i) => (
-                     <div key={cls.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border rounded-2xl bg-slate-50 animate-in slide-in-from-bottom-4 fade-in duration-300" style={{ animationDelay: `${i * 100}ms`, animationFillMode: "both" }}>
-                        <div className="flex items-start gap-4">
-                           <div className="w-12 h-12 rounded-xl bg-white border flex items-center justify-center shrink-0">
-                              <Video className="w-5 h-5 text-primary" />
-                           </div>
-                           <div>
-                              <div className="font-bold">{cls.subject}</div>
-                              <div className="text-sm text-muted-foreground mt-1">{cls.time} • {cls.student}</div>
-                           </div>
-                        </div>
-                        <Button onClick={() => setActiveMeeting(cls)} className="shrink-0 rounded-xl">Start Class</Button>
-                     </div>
-                  ))}
+                  {data.schedule.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">You have no classes scheduled for today.</p>
+                  ) : (
+                    data.schedule.map((cls: any, i: number) => (
+                       <div key={cls.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border rounded-2xl bg-slate-50 animate-in slide-in-from-bottom-4 fade-in duration-300" style={{ animationDelay: `${i * 100}ms`, animationFillMode: "both" }}>
+                          <div className="flex items-start gap-4">
+                             <div className="w-12 h-12 rounded-xl bg-white border flex items-center justify-center shrink-0">
+                                <Video className="w-5 h-5 text-primary" />
+                             </div>
+                             <div>
+                                <div className="font-bold">{cls.title}</div>
+                                <div className="text-sm text-muted-foreground mt-1">
+                                   {new Date(cls.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} 
+                                   {cls.student ? ` • ${cls.student}` : ''}
+                                </div>
+                             </div>
+                          </div>
+                          <Button onClick={() => setActiveMeeting(cls)} className="shrink-0 rounded-xl">Start Class</Button>
+                       </div>
+                    ))
+                  )}
                </div>
             </div>
 
-            {/* MOCK REVENUE CHART UI */}
+            {/* REVENUE CHART UI */}
             <div className="bg-white rounded-3xl border shadow-sm p-6">
                <h3 className="font-bold font-heading mb-6">Revenue Overview</h3>
                <div className="h-64 flex items-end justify-between gap-2 border-b border-l pb-2 pl-2">
@@ -268,20 +331,20 @@ export default function TeacherDashboardPage() {
             
          </div>
          
-         {/* RIGHT COLUMN: PENDING DEMOS & REVIEWS */}
+         {/* RIGHT COLUMN: PENDING TASKS */}
          <div className="space-y-8">
             
             <div className="bg-white rounded-3xl border shadow-sm p-6">
-               <h3 className="font-bold font-heading mb-4">Pending Demo Requests</h3>
+               <h3 className="font-bold font-heading mb-4">Pending Actions</h3>
                
                <div className="space-y-4 overflow-hidden">
-                  {demoRequests.map((req) => (
+                  {data.actionRequired.map((req: any) => (
                     <div key={req.id} className="p-4 border rounded-2xl bg-white transition-all duration-300">
                        <div className="flex justify-between items-start mb-2">
-                          <div className="font-bold text-sm">{req.student}</div>
-                          <Badge variant="outline" className="bg-warning/5 text-warning border-warning/20">{req.subject}</Badge>
+                          <div className="font-bold text-sm">{req.title}</div>
+                          <Badge variant="outline" className={req.type === 'Demo' ? 'bg-warning/5 text-warning border-warning/20' : 'bg-primary/5 text-primary border-primary/20'}>{req.type}</Badge>
                        </div>
-                       <div className="text-xs text-muted-foreground mb-4">Requested: {req.requestedTime}</div>
+                       <div className="text-xs text-muted-foreground mb-4">{req.desc}</div>
                        
                        <div className="flex gap-2">
                           <Button size="sm" onClick={() => handleAction(req, "approve")} className="flex-1 rounded-xl gap-1 bg-success hover:bg-success/90 text-white">
@@ -294,31 +357,12 @@ export default function TeacherDashboardPage() {
                     </div>
                   ))}
                   
-                  {demoRequests.length === 0 && (
+                  {data.actionRequired.length === 0 && (
                      <div className="text-center py-6 border-2 border-dashed rounded-2xl animate-in fade-in zoom-in-95 duration-500">
                         <CheckCircle2 className="w-8 h-8 text-success/50 mx-auto mb-2" />
                         <p className="text-sm text-muted-foreground">All caught up! No pending requests.</p>
                      </div>
                   )}
-               </div>
-            </div>
-
-            <div className="bg-white rounded-3xl border shadow-sm p-6">
-               <h3 className="font-bold font-heading mb-4 flex items-center gap-2">
-                  <Star className="w-5 h-5 text-warning fill-warning" /> Recent Reviews
-               </h3>
-               <div className="space-y-4 divide-y">
-                  {data.recentReviews.map((rev, i) => (
-                     <div key={i} className="pt-3 first:pt-0">
-                        <div className="flex justify-between items-center mb-1">
-                           <div className="font-bold text-sm">{rev.student}</div>
-                           <div className="flex">
-                              {[...Array(5)].map((_, j) => <Star key={j} className={`w-3 h-3 ${j < rev.rating ? 'text-warning fill-warning' : 'text-muted-foreground'}`} />)}
-                           </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground italic">"{rev.comment}"</p>
-                     </div>
-                  ))}
                </div>
             </div>
 
