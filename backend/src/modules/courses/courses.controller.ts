@@ -18,7 +18,6 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('courses')
-@UseGuards(JwtAuthGuard)
 export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}
 
@@ -31,6 +30,7 @@ export class CoursesController {
   }
 
   /** GET /courses — public list (published only by default) */
+  @UseGuards(JwtAuthGuard)
   @Get()
   findAll(
     @Query('subject') subject?: string,
@@ -55,6 +55,7 @@ export class CoursesController {
   }
 
   /** GET /courses/:id — full course with chapters & lessons */
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.coursesService.findCourseById(id);

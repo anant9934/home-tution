@@ -81,6 +81,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], CoursesController.prototype, "getPublicCourses", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)('subject')),
     __param(1, (0, common_1.Query)('class')),
@@ -100,6 +101,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], CoursesController.prototype, "getMyCourses", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -207,7 +209,6 @@ __decorate([
 ], CoursesController.prototype, "deleteLesson", null);
 exports.CoursesController = CoursesController = __decorate([
     (0, common_1.Controller)('courses'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [courses_service_1.CoursesService])
 ], CoursesController);
 //# sourceMappingURL=courses.controller.js.map
