@@ -15,8 +15,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.StudentsController = void 0;
 const common_1 = require("@nestjs/common");
 const students_service_1 = require("./students.service");
-const create_student_dto_1 = require("./dto/create-student.dto");
-const update_student_dto_1 = require("./dto/update-student.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 let StudentsController = class StudentsController {
     studentsService;
@@ -26,25 +24,33 @@ let StudentsController = class StudentsController {
     getDashboard(req) {
         return this.studentsService.getDashboard(req.user.userId);
     }
-    create(createStudentDto) {
-        return this.studentsService.create(createStudentDto);
+    getCourses(req) {
+        return this.studentsService.getCourses(req.user.userId);
     }
-    findAll() {
-        return this.studentsService.findAll();
+    getAttendance(req) {
+        return this.studentsService.getAttendance(req.user.userId);
     }
-    findOne(id) {
-        return this.studentsService.findOne(+id);
+    getAssignments(req) {
+        return this.studentsService.getAssignments(req.user.userId);
     }
-    update(id, updateStudentDto) {
-        return this.studentsService.update(+id, updateStudentDto);
+    getQuizzes(req) {
+        return this.studentsService.getQuizzes(req.user.userId);
     }
-    remove(id) {
-        return this.studentsService.remove(+id);
+    submitQuiz(req, id, score) {
+        return this.studentsService.submitQuiz(req.user.userId, id, score);
+    }
+    getLeaderboard(req) {
+        return this.studentsService.getLeaderboard(req.user.userId);
+    }
+    getMessages(req) {
+        return this.studentsService.getMessages(req.user.userId);
+    }
+    getProfile(req) {
+        return this.studentsService.getProfile(req.user.userId);
     }
 };
 exports.StudentsController = StudentsController;
 __decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)('dashboard'),
     __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -52,42 +58,66 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], StudentsController.prototype, "getDashboard", null);
 __decorate([
-    (0, common_1.Post)(),
-    __param(0, (0, common_1.Body)()),
+    (0, common_1.Get)('courses'),
+    __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [create_student_dto_1.CreateStudentDto]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
-], StudentsController.prototype, "create", null);
+], StudentsController.prototype, "getCourses", null);
 __decorate([
-    (0, common_1.Get)(),
+    (0, common_1.Get)('attendance'),
+    __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
-], StudentsController.prototype, "findAll", null);
+], StudentsController.prototype, "getAttendance", null);
 __decorate([
-    (0, common_1.Get)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.Get)('assignments'),
+    __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
-], StudentsController.prototype, "findOne", null);
+], StudentsController.prototype, "getAssignments", null);
 __decorate([
-    (0, common_1.Patch)(':id'),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
+    (0, common_1.Get)('quizzes'),
+    __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, update_student_dto_1.UpdateStudentDto]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
-], StudentsController.prototype, "update", null);
+], StudentsController.prototype, "getQuizzes", null);
 __decorate([
-    (0, common_1.Delete)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.Post)('quizzes/:id/submit'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)('score')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object, String, Number]),
     __metadata("design:returntype", void 0)
-], StudentsController.prototype, "remove", null);
+], StudentsController.prototype, "submitQuiz", null);
+__decorate([
+    (0, common_1.Get)('leaderboard'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], StudentsController.prototype, "getLeaderboard", null);
+__decorate([
+    (0, common_1.Get)('messages'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], StudentsController.prototype, "getMessages", null);
+__decorate([
+    (0, common_1.Get)('profile'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], StudentsController.prototype, "getProfile", null);
 exports.StudentsController = StudentsController = __decorate([
     (0, common_1.Controller)('students'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [students_service_1.StudentsService])
 ], StudentsController);
 //# sourceMappingURL=students.controller.js.map

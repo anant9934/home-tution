@@ -6,8 +6,8 @@ export declare class BookingsService {
     createBooking(studentUserId: string, dto: CreateBookingDto): Promise<{
         classSession: {
             id: string;
-            bookingId: string;
             startedAt: Date | null;
+            bookingId: string;
             endedAt: Date | null;
             recordingUrl: string | null;
             attendanceStatus: string | null;
@@ -56,17 +56,17 @@ export declare class BookingsService {
         status: import("src/generated/prisma").$Enums.BookingStatus;
         scheduledAt: Date;
         studentId: string;
+        duration: number;
         tutorId: string;
         bookingType: string;
-        duration: number;
         meetingLink: string | null;
         paymentStatus: string;
     }>;
     getStudentBookings(studentUserId: string, status?: string): Promise<({
         classSession: {
             id: string;
-            bookingId: string;
             startedAt: Date | null;
+            bookingId: string;
             endedAt: Date | null;
             recordingUrl: string | null;
             attendanceStatus: string | null;
@@ -98,17 +98,17 @@ export declare class BookingsService {
         status: import("src/generated/prisma").$Enums.BookingStatus;
         scheduledAt: Date;
         studentId: string;
+        duration: number;
         tutorId: string;
         bookingType: string;
-        duration: number;
         meetingLink: string | null;
         paymentStatus: string;
     })[]>;
     getTutorBookings(tutorUserId: string, status?: string): Promise<({
         classSession: {
             id: string;
-            bookingId: string;
             startedAt: Date | null;
+            bookingId: string;
             endedAt: Date | null;
             recordingUrl: string | null;
             attendanceStatus: string | null;
@@ -137,17 +137,17 @@ export declare class BookingsService {
         status: import("src/generated/prisma").$Enums.BookingStatus;
         scheduledAt: Date;
         studentId: string;
+        duration: number;
         tutorId: string;
         bookingType: string;
-        duration: number;
         meetingLink: string | null;
         paymentStatus: string;
     })[]>;
     getBookingById(id: string): Promise<{
         classSession: {
             id: string;
-            bookingId: string;
             startedAt: Date | null;
+            bookingId: string;
             endedAt: Date | null;
             recordingUrl: string | null;
             attendanceStatus: string | null;
@@ -196,9 +196,9 @@ export declare class BookingsService {
         status: import("src/generated/prisma").$Enums.BookingStatus;
         scheduledAt: Date;
         studentId: string;
+        duration: number;
         tutorId: string;
         bookingType: string;
-        duration: number;
         meetingLink: string | null;
         paymentStatus: string;
     }>;
@@ -207,9 +207,9 @@ export declare class BookingsService {
         status: import("src/generated/prisma").$Enums.BookingStatus;
         scheduledAt: Date;
         studentId: string;
+        duration: number;
         tutorId: string;
         bookingType: string;
-        duration: number;
         meetingLink: string | null;
         paymentStatus: string;
     }>;
@@ -218,24 +218,24 @@ export declare class BookingsService {
         status: import("src/generated/prisma").$Enums.BookingStatus;
         scheduledAt: Date;
         studentId: string;
+        duration: number;
         tutorId: string;
         bookingType: string;
-        duration: number;
         meetingLink: string | null;
         paymentStatus: string;
     }>;
     startSession(bookingId: string, tutorUserId: string): Promise<{
         id: string;
-        bookingId: string;
         startedAt: Date | null;
+        bookingId: string;
         endedAt: Date | null;
         recordingUrl: string | null;
         attendanceStatus: string | null;
     }>;
     endSession(bookingId: string, tutorUserId: string, recordingUrl?: string): Promise<{
         id: string;
-        bookingId: string;
         startedAt: Date | null;
+        bookingId: string;
         endedAt: Date | null;
         recordingUrl: string | null;
         attendanceStatus: string | null;
@@ -283,9 +283,9 @@ export declare class BookingsService {
             status: import("src/generated/prisma").$Enums.BookingStatus;
             scheduledAt: Date;
             studentId: string;
+            duration: number;
             tutorId: string;
             bookingType: string;
-            duration: number;
             meetingLink: string | null;
             paymentStatus: string;
         })[];

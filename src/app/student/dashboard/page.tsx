@@ -1,20 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { BookOpen, PlayCircle, Clock, Trophy, Flame, CheckCircle2, Video, X, Mic, MicOff, Camera, CameraOff, MonitorUp, FileText, ChevronRight } from "lucide-react";
+import { BookOpen, PlayCircle, Clock, Trophy, Flame, CheckCircle2, Video, X, Mic, MicOff, Camera, CameraOff, MonitorUp, FileText, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { MOCK_STUDENT_DASHBOARD } from "@/lib/mock-data";
+import { Skeleton } from "@/components/ui/skeleton";
+import { fetchApi } from "@/lib/api";
 
 export default function StudentDashboardPage() {
-  const data = MOCK_STUDENT_DASHBOARD;
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Dynamic State
-  const [xp, setXp] = useState(data.xp);
-  const [achievements, setAchievements] = useState(data.recentAchievements);
-  const [pendingTasks, setPendingTasks] = useState(data.pendingTasks);
+  const [xp, setXp] = useState(0);
+  const [achievements, setAchievements] = useState<string[]>([]);
+  const [pendingTasks, setPendingTasks] = useState<any[]>([]);
   const [showXpToast, setShowXpToast] = useState(false);
   
   // Modals State
@@ -29,24 +32,80 @@ export default function StudentDashboardPage() {
   const [quizStep, setQuizStep] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
 
-  const handleFinishQuiz = (taskId: string) => {
-    // 1. Close Quiz
-    setActiveQuiz(null);
-    // 2. Remove from pending tasks
-    setPendingTasks(prev => prev.filter(t => t.id !== taskId));
-    // 3. Add XP and Achievement
-    setXp(prev => prev + 50);
-    setAchievements(prev => ["Derivatives Master", ...prev]);
-    // 4. Show success toast
-    setShowXpToast(true);
-    setTimeout(() => setShowXpToast(false), 4000);
-    
-    // Reset Quiz state for next time
-    setTimeout(() => {
-      setQuizStep(0);
-      setSelectedAnswer(null);
-    }, 500);
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const dashboardData = await fetchApi("/students/dashboard");
+        setData(dashboardData);
+        setXp(dashboardData.xp);
+        setAchievements(dashboardData.recentAchievements);
+        setPendingTasks(dashboardData.pendingTasks);
+      } catch (err: any) {
+        setError(err.message || "Failed to load dashboard");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const handleFinishQuiz = async (taskId: string) => {
+    try {
+      // In a full implementation, we would send the score to the backend.
+      // For this interactive mockup, we just assume 100% score (10 marks)
+      const res = await fetchApi(`/students/quizzes/${taskId}/submit`, {
+        method: "POST",
+        body: JSON.stringify({ score: 10 }),
+      });
+
+      // 1. Close Quiz
+      setActiveQuiz(null);
+      // 2. Remove from pending tasks
+      setPendingTasks(prev => prev.filter(t => t.id !== taskId));
+      // 3. Add XP and Achievement
+      setXp(prev => prev + (res.xpEarned || 50));
+      setAchievements(prev => ["Quiz Master", ...prev]);
+      // 4. Show success toast
+      setShowXpToast(true);
+      setTimeout(() => setShowXpToast(false), 4000);
+      
+      // Reset Quiz state for next time
+      setTimeout(() => {
+        setQuizStep(0);
+        setSelectedAnswer(null);
+      }, 500);
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-8 pb-20 lg:pb-8">
+        <Skeleton className="h-16 w-1/2" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <Skeleton className="h-64 w-full rounded-3xl" />
+            <Skeleton className="h-64 w-full rounded-3xl" />
+          </div>
+          <div className="space-y-8">
+            <Skeleton className="h-48 w-full rounded-3xl" />
+            <Skeleton className="h-48 w-full rounded-3xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <AlertCircle className="w-12 h-12 text-destructive mb-4" />
+        <h2 className="text-xl font-bold mb-2">Failed to load dashboard</h2>
+        <p className="text-muted-foreground">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-20 lg:pb-8 relative">
@@ -58,8 +117,8 @@ export default function StudentDashboardPage() {
                <Trophy className="w-6 h-6 text-warning" />
             </div>
             <div>
-               <h4 className="font-bold font-heading text-lg text-warning-foreground">+50 XP Earned!</h4>
-               <p className="text-sm font-medium text-muted-foreground">You earned the "Derivatives Master" badge.</p>
+               <h4 className="font-bold font-heading text-lg text-warning-foreground">+XP Earned!</h4>
+               <p className="text-sm font-medium text-muted-foreground">You earned a new badge.</p>
             </div>
          </div>
       )}
@@ -85,7 +144,7 @@ export default function StudentDashboardPage() {
               <div className="relative w-full max-w-4xl aspect-video bg-gray-900 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
                  <img src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=1200" alt="Tutor" className="w-full h-full object-cover opacity-80" />
                  <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-lg border border-white/10 font-medium">
-                    Dr. Sarah Jenkins
+                    Instructor
                  </div>
                  <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white/80 p-2 rounded-lg border border-white/10">
                     <Mic className="w-4 h-4" />
@@ -98,7 +157,7 @@ export default function StudentDashboardPage() {
                     <img src="https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?auto=format&fit=crop&q=80&w=400" alt="You" className="w-full h-full object-cover" />
                  ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                       <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold text-xl">A</div>
+                       <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold text-xl">{data.studentName.charAt(0)}</div>
                     </div>
                  )}
                  <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white text-[10px] px-2 py-1 rounded-md border border-white/10">
@@ -165,10 +224,10 @@ export default function StudentDashboardPage() {
               <div className="p-8">
                  {quizStep === 0 ? (
                     <>
-                       <h4 className="text-xl font-bold mb-6">What is the derivative of <code className="bg-muted px-2 py-1 rounded-md text-primary">f(x) = x²</code>?</h4>
+                       <h4 className="text-xl font-bold mb-6">Take the quiz carefully!</h4>
                        
                        <div className="space-y-3">
-                          {["2x", "x", "x²", "2"].map((ans, i) => (
+                          {["Option 1", "Option 2", "Option 3", "Option 4"].map((ans, i) => (
                              <button
                                 key={i}
                                 onClick={() => setSelectedAnswer(i)}
@@ -207,9 +266,9 @@ export default function StudentDashboardPage() {
                           <CheckCircle2 className="w-10 h-10 text-success" />
                        </div>
                        <h4 className="text-2xl font-bold font-heading mb-2">Perfect Score!</h4>
-                       <p className="text-muted-foreground mb-8">You successfully completed the quiz.</p>
+                       <p className="text-muted-foreground mb-8">You successfully completed the task.</p>
                        <Button onClick={() => handleFinishQuiz(activeQuiz)} className="rounded-full px-8 font-bold w-full sm:w-auto">
-                          Claim +50 XP
+                          Claim Rewards
                        </Button>
                     </div>
                  )}
@@ -251,7 +310,7 @@ export default function StudentDashboardPage() {
                
                {pendingTasks.length > 0 ? (
                   <div className="grid gap-4">
-                     {pendingTasks.map((task) => (
+                     {pendingTasks.map((task: any) => (
                         <div key={task.id} className="bg-white rounded-2xl border shadow-sm p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                            <div className="flex items-center gap-4">
                               <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${task.type === "Quiz" ? "bg-warning/10" : "bg-primary/10"}`}>
@@ -290,22 +349,22 @@ export default function StudentDashboardPage() {
                </h2>
                
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {data.enrolledCourses.map((course) => (
+                  {data.enrolledCourses.map((course: any) => (
                     <div key={course.id} className="bg-white rounded-3xl border shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col">
                        <h3 className="font-bold text-lg font-heading mb-1 line-clamp-1">{course.title}</h3>
                        <p className="text-sm text-muted-foreground mb-4">with {course.instructor}</p>
                        
                        <div className="mb-6 mt-auto">
                           <div className="flex justify-between items-end mb-2">
-                            <span className="text-xs font-bold text-muted-foreground">Up next: {course.nextLesson}</span>
+                            <span className="text-xs font-bold text-muted-foreground line-clamp-1">Up next: {course.nextLesson}</span>
                             <span className="text-xs font-bold">{course.progress}%</span>
                           </div>
                           <Progress value={course.progress} className="h-2" />
                        </div>
                        
-                       <Link href={`/student/courses/${course.id}/learn`}>
+                       <Link href={`/student/courses`}>
                           <Button className="w-full rounded-xl shadow-sm gap-2">
-                            <PlayCircle className="w-4 h-4" /> Resume Course
+                            <PlayCircle className="w-4 h-4" /> Go to Course
                           </Button>
                        </Link>
                     </div>
@@ -323,20 +382,24 @@ export default function StudentDashboardPage() {
                   <Clock className="w-5 h-5 text-primary" /> Upcoming Classes
                </h3>
                <div className="space-y-4">
-                  {data.upcomingClasses.map((cls) => (
-                     <div key={cls.id} className="p-4 rounded-2xl border bg-slate-50 relative overflow-hidden group">
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
-                        <h4 className="font-bold text-sm mb-1">{cls.title}</h4>
-                        <div className="text-xs text-muted-foreground mb-3">{cls.time} • {cls.tutor}</div>
-                        <Button 
-                           size="sm" 
-                           onClick={() => setActiveMeeting(cls.title)}
-                           className="w-full text-xs h-8 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors"
-                        >
-                           Join Meeting
-                        </Button>
-                     </div>
-                  ))}
+                  {data.upcomingClasses.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No upcoming classes</p>
+                  ) : (
+                    data.upcomingClasses.map((cls: any) => (
+                       <div key={cls.id} className="p-4 rounded-2xl border bg-slate-50 relative overflow-hidden group">
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+                          <h4 className="font-bold text-sm mb-1">{cls.title}</h4>
+                          <div className="text-xs text-muted-foreground mb-3">{cls.time} • {cls.tutor}</div>
+                          <Button 
+                             size="sm" 
+                             onClick={() => setActiveMeeting(cls.title)}
+                             className="w-full text-xs h-8 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors"
+                          >
+                             Join Meeting
+                          </Button>
+                       </div>
+                    ))
+                  )}
                </div>
             </div>
 
@@ -346,14 +409,18 @@ export default function StudentDashboardPage() {
                   <Trophy className="w-5 h-5 text-warning" /> Recent Badges
                </h3>
                <div className="space-y-3">
-                  {achievements.map((badge, i) => (
-                     <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-warning/20 bg-warning/5 animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${i * 100}ms`, animationFillMode: "both" }}>
-                        <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center shrink-0">
-                           <CheckCircle2 className="w-6 h-6 text-warning" />
-                        </div>
-                        <div className="font-semibold text-sm">{badge}</div>
-                     </div>
-                  ))}
+                  {achievements.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Keep learning to earn badges!</p>
+                  ) : (
+                    achievements.map((badge, i) => (
+                       <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-warning/20 bg-warning/5 animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${i * 100}ms`, animationFillMode: "both" }}>
+                          <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center shrink-0">
+                             <CheckCircle2 className="w-6 h-6 text-warning" />
+                          </div>
+                          <div className="font-semibold text-sm">{badge}</div>
+                       </div>
+                    ))
+                  )}
                </div>
             </div>
 

@@ -33,8 +33,8 @@ export declare class CoursesController {
         description: string | null;
         subject: string;
         thumbnail: string | null;
-        isPublished: boolean;
         createdBy: string;
+        isPublished: boolean;
     })[]>;
     getMyCourses(req: any): Promise<({
         _count: {
@@ -52,44 +52,44 @@ export declare class CoursesController {
         description: string | null;
         subject: string;
         thumbnail: string | null;
-        isPublished: boolean;
         createdBy: string;
+        isPublished: boolean;
     })[]>;
     findOne(id: string): Promise<{
         chapters: ({
             lessons: {
                 id: string;
-                duration: number;
                 title: string;
+                duration: number;
                 order: number;
+                chapterId: string;
                 videoUrl: string | null;
                 notesUrl: string | null;
-                chapterId: string;
             }[];
         } & {
             id: string;
             title: string;
-            order: number;
             courseId: string;
+            order: number;
         })[];
         assignments: {
             id: string;
             title: string;
             description: string | null;
             createdBy: string;
-            deadline: Date;
             courseId: string;
+            deadline: Date;
             maxMarks: number;
             attachmentUrl: string | null;
         }[];
         quizzes: {
             id: string;
-            duration: number;
             title: string;
             createdBy: string;
-            startTime: Date | null;
             courseId: string;
+            duration: number;
             totalMarks: number;
+            startTime: Date | null;
             endTime: Date | null;
         }[];
     } & {
@@ -102,8 +102,8 @@ export declare class CoursesController {
         description: string | null;
         subject: string;
         thumbnail: string | null;
-        isPublished: boolean;
         createdBy: string;
+        isPublished: boolean;
     }>;
     create(req: any, dto: CreateCourseDto): Promise<{
         id: string;
@@ -115,8 +115,8 @@ export declare class CoursesController {
         description: string | null;
         subject: string;
         thumbnail: string | null;
-        isPublished: boolean;
         createdBy: string;
+        isPublished: boolean;
     }>;
     update(id: string, req: any, dto: Partial<CreateCourseDto>): Promise<{
         id: string;
@@ -128,8 +128,8 @@ export declare class CoursesController {
         description: string | null;
         subject: string;
         thumbnail: string | null;
-        isPublished: boolean;
         createdBy: string;
+        isPublished: boolean;
     }>;
     publish(id: string, req: any): Promise<{
         id: string;
@@ -141,8 +141,8 @@ export declare class CoursesController {
         description: string | null;
         subject: string;
         thumbnail: string | null;
-        isPublished: boolean;
         createdBy: string;
+        isPublished: boolean;
     }>;
     remove(id: string, req: any): Promise<{
         id: string;
@@ -154,52 +154,52 @@ export declare class CoursesController {
         description: string | null;
         subject: string;
         thumbnail: string | null;
-        isPublished: boolean;
         createdBy: string;
+        isPublished: boolean;
     }>;
     createChapter(courseId: string, dto: CreateChapterDto): Promise<{
         id: string;
         title: string;
-        order: number;
         courseId: string;
+        order: number;
     }>;
     updateChapter(chapterId: string, dto: Partial<CreateChapterDto>): Promise<{
         id: string;
         title: string;
-        order: number;
         courseId: string;
+        order: number;
     }>;
     deleteChapter(chapterId: string): Promise<{
         id: string;
         title: string;
-        order: number;
         courseId: string;
+        order: number;
     }>;
     createLesson(chapterId: string, dto: CreateLessonDto): Promise<{
         id: string;
-        duration: number;
         title: string;
+        duration: number;
         order: number;
+        chapterId: string;
         videoUrl: string | null;
         notesUrl: string | null;
-        chapterId: string;
     }>;
     updateLesson(lessonId: string, dto: Partial<CreateLessonDto>): Promise<{
         id: string;
-        duration: number;
         title: string;
+        duration: number;
         order: number;
+        chapterId: string;
         videoUrl: string | null;
         notesUrl: string | null;
-        chapterId: string;
     }>;
     deleteLesson(lessonId: string): Promise<{
         id: string;
-        duration: number;
         title: string;
+        duration: number;
         order: number;
+        chapterId: string;
         videoUrl: string | null;
         notesUrl: string | null;
-        chapterId: string;
     }>;
 }

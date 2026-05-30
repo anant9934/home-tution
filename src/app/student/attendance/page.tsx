@@ -1,13 +1,54 @@
 "use client";
 
-import { CalendarCheck, AlertCircle, Calendar } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CalendarCheck, AlertCircle, Calendar, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { fetchApi } from "@/lib/api";
 
 export default function StudentAttendancePage() {
-  const presentDays = 42;
-  const totalDays = 45;
-  const percentage = Math.round((presentDays / totalDays) * 100);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadAttendance() {
+      try {
+        const res = await fetchApi("/students/attendance");
+        setData(res);
+      } catch (err: any) {
+        setError(err.message || "Failed to load attendance");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadAttendance();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-8 pb-20 lg:pb-8">
+        <Skeleton className="h-12 w-48 mb-8" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 w-full rounded-3xl" />)}
+        </div>
+        <Skeleton className="h-96 w-full rounded-3xl" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <AlertCircle className="w-12 h-12 text-destructive mb-4" />
+        <h2 className="text-xl font-bold mb-2">Failed to load attendance</h2>
+        <p className="text-muted-foreground">{error}</p>
+      </div>
+    );
+  }
+
+  const { stats, records } = data;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-20 lg:pb-8">
@@ -26,24 +67,24 @@ export default function StudentAttendancePage() {
                   </div>
                   <h3 className="font-semibold text-muted-foreground">Attendance Rate</h3>
                </div>
-               <div className="text-4xl font-bold font-heading text-success">{percentage}%</div>
-               <p className="text-xs text-muted-foreground mt-2">Excellent standing</p>
+               <div className="text-4xl font-bold font-heading text-success">{stats.percentage}%</div>
+               <p className="text-xs text-muted-foreground mt-2">{stats.percentage >= 80 ? 'Excellent standing' : 'Needs improvement'}</p>
             </CardContent>
          </Card>
          
          <Card className="rounded-3xl border shadow-sm">
             <CardContent className="p-6">
                <h3 className="font-semibold text-muted-foreground mb-2">Classes Attended</h3>
-               <div className="text-3xl font-bold font-heading">{presentDays} <span className="text-lg text-muted-foreground font-normal">/ {totalDays}</span></div>
-               <p className="text-xs text-muted-foreground mt-2">This semester</p>
+               <div className="text-3xl font-bold font-heading">{stats.presentDays} <span className="text-lg text-muted-foreground font-normal">/ {stats.totalDays}</span></div>
+               <p className="text-xs text-muted-foreground mt-2">Overall total</p>
             </CardContent>
          </Card>
          
          <Card className="rounded-3xl border shadow-sm">
             <CardContent className="p-6">
                <h3 className="font-semibold text-muted-foreground mb-2">Absences</h3>
-               <div className="text-3xl font-bold font-heading text-destructive">3</div>
-               <p className="text-xs text-muted-foreground mt-2">2 excused, 1 unexcused</p>
+               <div className="text-3xl font-bold font-heading text-destructive">{stats.absentDays}</div>
+               <p className="text-xs text-muted-foreground mt-2">Total missed classes</p>
             </CardContent>
          </Card>
       </div>
@@ -53,31 +94,32 @@ export default function StudentAttendancePage() {
          <h3 className="font-bold font-heading mb-6 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-primary" /> Recent Records
          </h3>
-         <div className="space-y-4">
-            {[
-               { date: "Today", subject: "Mathematics", status: "Present", teacher: "Dr. Sarah Jenkins" },
-               { date: "Yesterday", subject: "Physics", status: "Present", teacher: "Rohit Verma" },
-               { date: "Monday, May 25", subject: "Chemistry", status: "Absent", type: "Excused", teacher: "Anita Desai" },
-               { date: "Friday, May 22", subject: "Computer Science", status: "Present", teacher: "Arjun Mehta" },
-               { date: "Thursday, May 21", subject: "Mathematics", status: "Present", teacher: "Dr. Sarah Jenkins" },
-            ].map((record, i) => (
-               <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-2xl gap-4 hover:bg-slate-50 transition-colors">
-                  <div className="flex gap-4">
-                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${record.status === 'Present' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
-                        {record.status === "Present" ? <CalendarCheck className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                     </div>
-                     <div>
-                        <h4 className="font-bold">{record.subject}</h4>
-                        <div className="text-sm text-muted-foreground mt-0.5">{record.date} • {record.teacher}</div>
-                     </div>
-                  </div>
-                  <div className="flex flex-col items-start sm:items-end gap-1">
-                     <Badge className={record.status === 'Present' ? 'bg-success hover:bg-success/90' : 'bg-destructive hover:bg-destructive/90'}>{record.status}</Badge>
-                     {record.type && <span className="text-xs text-muted-foreground font-semibold px-2 border rounded-full">{record.type}</span>}
-                  </div>
-               </div>
-            ))}
-         </div>
+         
+         {records.length === 0 ? (
+           <div className="text-center py-10">
+              <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-20" />
+              <p className="text-muted-foreground">No attendance records found.</p>
+           </div>
+         ) : (
+           <div className="space-y-4">
+              {records.map((record: any) => (
+                 <div key={record.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-2xl gap-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex gap-4">
+                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${record.status === 'PRESENT' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+                          {record.status === "PRESENT" ? <CalendarCheck className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                       </div>
+                       <div>
+                          <h4 className="font-bold capitalize">{record.subject.replace('_', ' ').toLowerCase()}</h4>
+                          <div className="text-sm text-muted-foreground mt-0.5">{record.date} • {record.teacher}</div>
+                       </div>
+                    </div>
+                    <div className="flex flex-col items-start sm:items-end gap-1">
+                       <Badge className={record.status === 'PRESENT' ? 'bg-success hover:bg-success/90' : 'bg-destructive hover:bg-destructive/90'}>{record.status}</Badge>
+                    </div>
+                 </div>
+              ))}
+           </div>
+         )}
       </div>
     </div>
   );
