@@ -96,4 +96,66 @@ export class AdminService {
       }
     });
   }
+
+  async getStudents() {
+    return this.prisma.studentProfile.findMany({
+      include: {
+        user: { select: { name: true, email: true, status: true, createdAt: true } }
+      },
+      orderBy: { joiningDate: 'desc' }
+    });
+  }
+
+  async getTutors() {
+    return this.prisma.tutorProfile.findMany({
+      include: {
+        user: { select: { name: true, email: true, status: true, createdAt: true } }
+      },
+      orderBy: { user: { createdAt: 'desc' } }
+    });
+  }
+
+  async getCourses() {
+    return this.prisma.course.findMany({
+      include: {
+        chapters: { select: { id: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async getFees() {
+    return this.prisma.fee.findMany({
+      include: {
+        student: { include: { user: { select: { name: true, email: true } } } },
+        payments: true
+      },
+      orderBy: { dueDate: 'desc' }
+    });
+  }
+
+  async getAnalytics() {
+    return this.prisma.dailyStat.findMany({
+      orderBy: { date: 'desc' },
+      take: 30
+    });
+  }
+
+  async getNotifications() {
+    return this.prisma.notification.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      include: { user: { select: { name: true, role: true } } }
+    });
+  }
+
+  async getSettings() {
+    // Return mock settings since we don't have a settings table yet
+    return {
+      platformFeePercentage: 15,
+      allowNewRegistrations: true,
+      maintenanceMode: false,
+      contactEmail: 'support@edtech.com'
+    };
+  }
 }

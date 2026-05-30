@@ -29,4 +29,46 @@ export class AdminController {
   createCourse(@Body() body: { title: string; subject: string; instructor: string }) {
     return this.adminService.createCourse(body);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('students')
+  getStudents() {
+    return this.adminService.getStudents();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('tutors')
+  getTutors() {
+    return this.adminService.getTutors();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('courses')
+  getCourses() {
+    return this.adminService.getCourses();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('fees')
+  getFees() {
+    return this.adminService.getFees();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('analytics')
+  getAnalytics() {
+    return this.adminService.getAnalytics();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('notifications')
+  getNotifications() {
+    return this.adminService.getNotifications();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('settings')
+  getSettings() {
+    return this.adminService.getSettings();
+  }
 }
