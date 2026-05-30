@@ -40,6 +40,20 @@ export declare class StudentsController {
             lessons: string[];
         }[];
     }[]>;
+    getCourseCurriculum(req: any, courseId: string): Promise<{
+        courseTitle: string;
+        curriculum: any[];
+    }>;
+    markLessonComplete(req: any, lessonId: string): Promise<{
+        success: boolean;
+        progress: {
+            id: string;
+            createdAt: Date;
+            studentId: string;
+            lessonId: string;
+            completed: boolean;
+        };
+    }>;
     getAttendance(req: any): Promise<{
         stats: {
             presentDays: number;
@@ -71,6 +85,20 @@ export declare class StudentsController {
             score: string;
             status: string;
         }[];
+    }>;
+    submitAssignment(req: any, id: string, body: {
+        submissionUrl: string;
+    }): Promise<{
+        success: boolean;
+        submission: {
+            id: string;
+            studentId: string;
+            submittedAt: Date;
+            assignmentId: string;
+            submissionUrl: string;
+            marks: number | null;
+            feedback: string | null;
+        };
     }>;
     getQuizzes(req: any): Promise<{
         pending: {
@@ -145,6 +173,16 @@ export declare class StudentsController {
         type: string;
     })[]>;
     getProfile(req: any): Promise<{
+        id: string;
+        name: string;
+        email: string;
+        phone: string | null;
+        class: string;
+        board: string;
+        school: string | null;
+        joiningDate: string;
+    }>;
+    updateProfile(req: any, body: any): Promise<{
         id: string;
         name: string;
         email: string;

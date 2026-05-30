@@ -49,8 +49,11 @@ export default function StudentProfilePage() {
     e.preventDefault();
     setSaving(true);
     try {
-      // We simulate the update since PATCH /students/profile isn't fully implemented in backend yet.
-      await new Promise(res => setTimeout(res, 1000));
+      await fetchApi("/students/profile", {
+         method: "PATCH",
+         body: JSON.stringify({ firstName, lastName, email, phone })
+      });
+      
       toast.success("Profile updated successfully");
       
       setProfile({
@@ -59,8 +62,8 @@ export default function StudentProfilePage() {
         email,
         phone
       });
-    } catch (err) {
-      toast.error("Failed to update profile");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update profile");
     } finally {
       setSaving(false);
     }

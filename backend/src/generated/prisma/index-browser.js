@@ -213,6 +213,14 @@ exports.Prisma.LessonScalarFieldEnum = {
   order: 'order'
 };
 
+exports.Prisma.LessonProgressScalarFieldEnum = {
+  id: 'id',
+  studentId: 'studentId',
+  lessonId: 'lessonId',
+  completed: 'completed',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.BookingScalarFieldEnum = {
   id: 'id',
   studentId: 'studentId',
@@ -453,6 +461,7 @@ exports.Prisma.ModelName = {
   Course: 'Course',
   Chapter: 'Chapter',
   Lesson: 'Lesson',
+  LessonProgress: 'LessonProgress',
   Booking: 'Booking',
   ClassSession: 'ClassSession',
   Attendance: 'Attendance',

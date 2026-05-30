@@ -34,9 +34,10 @@ export default function StudentAssignmentsPage() {
   const handleSubmit = async (id: string) => {
      setUploading(id);
      try {
-        // Since we don't have a real file upload API yet, we simulate the submission.
-        // In a real scenario, this would POST FormData to /students/assignments/:id/submit
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await fetchApi(`/students/assignments/${id}/submit`, {
+          method: "POST",
+          body: JSON.stringify({ submissionUrl: "https://example.com/mock.pdf" })
+        });
         
         const assignment = pendingItems.find(a => a.id === id);
         if (assignment) {
@@ -49,10 +50,10 @@ export default function StudentAssignmentsPage() {
             score: 'Pending Grading',
             status: 'Submitted'
           }, ...prev]);
-          toast.success("Assignment submitted successfully!");
+          toast.success("Assignment submitted successfully! +50 XP");
         }
-     } catch (err) {
-        toast.error("Failed to submit assignment");
+     } catch (err: any) {
+        toast.error(err.message || "Failed to submit assignment");
      } finally {
         setUploading(null);
      }

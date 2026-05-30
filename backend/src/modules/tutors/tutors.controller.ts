@@ -19,6 +19,29 @@ export class TutorsController {
     return this.tutorsService.getPublicTutors();
   }
 
+  @Get('public/:id')
+  getPublicTutorDetails(@Param('id') id: string) {
+    return this.tutorsService.getPublicTutorDetails(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('public/:id/book')
+  bookDemo(@Request() req: any, @Param('id') id: string, @Body() body: { slotIndex: number }) {
+    return this.tutorsService.bookDemo(req.user.userId, id, body.slotIndex);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('bookings/:id/status')
+  updateBookingStatus(@Param('id') id: string, @Body() body: { status: string }) {
+    return this.tutorsService.updateBookingStatus(id, body.status);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('bookings')
+  scheduleClass(@Request() req: any, @Body() body: { title: string; studentName: string; time: string }) {
+    return this.tutorsService.scheduleClass(req.user.userId, body);
+  }
+
   @Post()
   create(@Body() createTutorDto: CreateTutorDto) {
     return this.tutorsService.create(createTutorDto);

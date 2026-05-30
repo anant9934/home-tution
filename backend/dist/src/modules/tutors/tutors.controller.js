@@ -29,6 +29,18 @@ let TutorsController = class TutorsController {
     getPublicTutors() {
         return this.tutorsService.getPublicTutors();
     }
+    getPublicTutorDetails(id) {
+        return this.tutorsService.getPublicTutorDetails(id);
+    }
+    bookDemo(req, id, body) {
+        return this.tutorsService.bookDemo(req.user.userId, id, body.slotIndex);
+    }
+    updateBookingStatus(id, body) {
+        return this.tutorsService.updateBookingStatus(id, body.status);
+    }
+    scheduleClass(req, body) {
+        return this.tutorsService.scheduleClass(req.user.userId, body);
+    }
     create(createTutorDto) {
         return this.tutorsService.create(createTutorDto);
     }
@@ -60,6 +72,41 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], TutorsController.prototype, "getPublicTutors", null);
+__decorate([
+    (0, common_1.Get)('public/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], TutorsController.prototype, "getPublicTutorDetails", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Post)('public/:id/book'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", void 0)
+], TutorsController.prototype, "bookDemo", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Patch)('bookings/:id/status'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], TutorsController.prototype, "updateBookingStatus", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Post)('bookings'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], TutorsController.prototype, "scheduleClass", null);
 __decorate([
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),

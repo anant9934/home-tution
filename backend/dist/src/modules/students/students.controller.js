@@ -27,11 +27,20 @@ let StudentsController = class StudentsController {
     getCourses(req) {
         return this.studentsService.getCourses(req.user.userId);
     }
+    getCourseCurriculum(req, courseId) {
+        return this.studentsService.getCourseCurriculum(req.user.userId, courseId);
+    }
+    markLessonComplete(req, lessonId) {
+        return this.studentsService.markLessonComplete(req.user.userId, lessonId);
+    }
     getAttendance(req) {
         return this.studentsService.getAttendance(req.user.userId);
     }
     getAssignments(req) {
         return this.studentsService.getAssignments(req.user.userId);
+    }
+    submitAssignment(req, id, body) {
+        return this.studentsService.submitAssignment(req.user.userId, id, body.submissionUrl);
     }
     getQuizzes(req) {
         return this.studentsService.getQuizzes(req.user.userId);
@@ -47,6 +56,9 @@ let StudentsController = class StudentsController {
     }
     getProfile(req) {
         return this.studentsService.getProfile(req.user.userId);
+    }
+    updateProfile(req, body) {
+        return this.studentsService.updateProfile(req.user.userId, body);
     }
 };
 exports.StudentsController = StudentsController;
@@ -65,6 +77,22 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], StudentsController.prototype, "getCourses", null);
 __decorate([
+    (0, common_1.Get)('courses/:id/curriculum'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], StudentsController.prototype, "getCourseCurriculum", null);
+__decorate([
+    (0, common_1.Post)('courses/lessons/:lessonId/complete'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('lessonId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], StudentsController.prototype, "markLessonComplete", null);
+__decorate([
     (0, common_1.Get)('attendance'),
     __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -78,6 +106,15 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], StudentsController.prototype, "getAssignments", null);
+__decorate([
+    (0, common_1.Post)('assignments/:id/submit'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", void 0)
+], StudentsController.prototype, "submitAssignment", null);
 __decorate([
     (0, common_1.Get)('quizzes'),
     __param(0, (0, common_1.Request)()),
@@ -115,6 +152,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], StudentsController.prototype, "getProfile", null);
+__decorate([
+    (0, common_1.Patch)('profile'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], StudentsController.prototype, "updateProfile", null);
 exports.StudentsController = StudentsController = __decorate([
     (0, common_1.Controller)('students'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

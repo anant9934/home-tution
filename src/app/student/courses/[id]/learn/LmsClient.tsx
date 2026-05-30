@@ -6,47 +6,100 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 
-const MOCK_CURRICULUM = [
-  { id: 1, title: "Introduction to Calculus", type: "video", duration: "12:45", completed: true },
-  { id: 2, title: "Limits and Continuity", type: "video", duration: "18:20", completed: true },
-  { id: 3, title: "Derivatives Basics", type: "video", duration: "25:10", completed: false },
-  { id: 4, title: "Chapter 1 Knowledge Check", type: "quiz", duration: "10 mins", completed: false },
-  { id: 5, title: "Applications of Derivatives", type: "video", duration: "22:15", completed: false },
-];
+import { useEffect } from "react";
+import { fetchApi } from "@/lib/api";
+import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default function LmsClient() {
+export default function LmsClient({ courseId }: { courseId: string }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeLessonId, setActiveLessonId] = useState(3);
+  
+  const [curriculum, setCurriculum] = useState<any[]>([]);
+  const [courseTitle, setCourseTitle] = useState("Loading...");
+  const [loading, setLoading] = useState(true);
+  
+  const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizStep, setQuizStep] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
+  const [earnedXp, setEarnedXp] = useState(0);
 
-  const activeLesson = MOCK_CURRICULUM.find(l => l.id === activeLessonId);
+  useEffect(() => {
+    fetchApi(`/students/courses/${courseId}/curriculum`)
+      .then(res => {
+         setCurriculum(res.curriculum);
+         setCourseTitle(res.courseTitle);
+         if (res.curriculum.length > 0) {
+            setActiveLessonId(res.curriculum[0].id);
+         }
+      })
+      .catch(err => toast.error("Failed to load curriculum"))
+      .finally(() => setLoading(false));
+  }, [courseId]);
+
+  const activeLesson = curriculum.find(l => l.id === activeLessonId);
   const isQuizLesson = activeLesson?.type === "quiz";
 
+  // Mock quiz questions since actual schema only maps basic quiz without deep relation in payload yet
+  // In a real scenario, this would be fetched from activeLesson.quizId
   const quizQuestions = [
     { q: "What is the derivative of x²?", options: ["2x", "x", "x³", "1"], correct: 0 },
     { q: "What does a derivative represent?", options: ["Area under curve", "Rate of change", "Total volume", "Roots of equation"], correct: 1 },
   ];
 
   const handleNextLesson = () => {
-    const nextLesson = MOCK_CURRICULUM.find(l => l.id === activeLessonId + 1);
+    if (!activeLessonId) return;
+    const nextLesson = curriculum.find(l => l.id === activeLessonId + 1);
     if (nextLesson) setActiveLessonId(nextLesson.id);
   };
 
-  const submitAnswer = () => {
+  const submitAnswer = async () => {
     if (selectedAnswer === quizQuestions[quizStep].correct) {
        if (quizStep < quizQuestions.length - 1) {
          setQuizStep(s => s + 1);
          setSelectedAnswer(null);
        } else {
+         // Submit quiz to backend
+         if (activeLesson?.quizId) {
+            try {
+               const res = await fetchApi(`/students/quizzes/${activeLesson.quizId}/submit`, {
+                 method: "POST",
+                 body: JSON.stringify({ score: 100 })
+               });
+               setEarnedXp(res.xpEarned || 50);
+            } catch (err) {
+               console.error(err);
+            }
+         }
+         
+         setCurriculum(prev => prev.map(l => l.id === activeLessonId ? { ...l, completed: true } : l));
          setQuizCompleted(true);
        }
     } else {
-       alert("Incorrect, try again!");
+       toast.error("Incorrect, try again!");
     }
   };
+
+  const markVideoComplete = async () => {
+    if (activeLesson?.lessonId) {
+       try {
+          await fetchApi(`/students/courses/lessons/${activeLesson.lessonId}/complete`, {
+            method: "POST"
+          });
+          setCurriculum(prev => prev.map(l => l.id === activeLessonId ? { ...l, completed: true } : l));
+          handleNextLesson();
+       } catch (err: any) {
+          toast.error("Failed to mark as complete");
+       }
+    } else {
+       handleNextLesson();
+    }
+  };
+
+  if (loading) {
+     return <div className="p-8 flex justify-center"><Skeleton className="w-full h-[60vh] rounded-3xl" /></div>;
+  }
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -55,14 +108,16 @@ export default function LmsClient() {
       <div className={`w-80 bg-white border-r flex flex-col transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full fixed z-20 h-full shadow-2xl'}`}>
          <div className="p-4 border-b flex justify-between items-center">
             <div>
-               <h3 className="font-bold font-heading line-clamp-1">Mastering Advanced Calculus</h3>
-               <p className="text-xs text-muted-foreground mt-1">2/15 completed</p>
+               <h3 className="font-bold font-heading line-clamp-1">{courseTitle}</h3>
+               <p className="text-xs text-muted-foreground mt-1">
+                 {curriculum.filter(l => l.completed).length}/{curriculum.length} completed
+               </p>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)} className="lg:hidden"><X className="w-5 h-5" /></Button>
          </div>
          
          <div className="flex-1 overflow-y-auto p-4 space-y-2">
-            {MOCK_CURRICULUM.map((lesson) => (
+            {curriculum.map((lesson) => (
                <div 
                  key={lesson.id} 
                  onClick={() => {
@@ -142,12 +197,12 @@ export default function LmsClient() {
                          </Button>
                       </div>
                     ) : (
-                      <div className="text-center z-10 space-y-6">
+                       <div className="text-center z-10 space-y-6">
                          <div className="w-24 h-24 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Trophy className="w-12 h-12 text-success" />
                          </div>
                          <h3 className="text-3xl font-bold font-heading">Quiz Completed!</h3>
-                         <p className="text-muted-foreground text-lg">+50 XP Earned</p>
+                         <p className="text-muted-foreground text-lg">+{earnedXp || 50} XP Earned</p>
                          <Button onClick={handleNextLesson} className="h-12 px-8 rounded-full shadow-sm text-md font-bold mt-4">Continue to Next Lesson</Button>
                       </div>
                     )}
@@ -161,11 +216,11 @@ export default function LmsClient() {
                    </div>
                    
                    <div className="bg-white p-6 rounded-3xl border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-                      <div>
+                       <div>
                          <h4 className="font-bold text-lg">About this lesson</h4>
-                         <p className="text-muted-foreground text-sm mt-1 max-w-2xl">In this lesson, we will cover the fundamental concepts of derivatives and how they apply to real-world physics problems.</p>
+                         <p className="text-muted-foreground text-sm mt-1 max-w-2xl">This lesson is part of {courseTitle}.</p>
                       </div>
-                      <Button onClick={handleNextLesson} className="h-12 px-6 rounded-full shadow-sm font-bold gap-2">
+                      <Button onClick={markVideoComplete} className="h-12 px-6 rounded-full shadow-sm font-bold gap-2">
                          Mark Complete <ChevronRight className="w-4 h-4" />
                       </Button>
                    </div>

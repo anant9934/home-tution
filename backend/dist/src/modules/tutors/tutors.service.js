@@ -40,10 +40,20 @@ let TutorsService = class TutorsService {
         const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
         const completedBookingsThisMonth = tutor.bookings.filter(b => b.status === 'COMPLETED' && b.scheduledAt >= startOfMonth);
         const monthlyEarnings = completedBookingsThisMonth.reduce((sum, b) => sum + (b.duration / 60) * tutor.hourlyRate, 0);
-        const pendingTasks = [
-            { id: '1', title: 'Grade Calculus Test', desc: '45 pending submissions', type: 'Assignment' },
-            { id: '2', title: 'Approve Demo Request', desc: 'Rahul Sharma (Class 10)', type: 'Demo' },
-        ];
+        const pendingBookings = await this.prisma.booking.findMany({
+            where: {
+                tutorId: tutor.id,
+                status: 'PENDING'
+            },
+            include: { student: { include: { user: true } } }
+        });
+        const pendingTasks = pendingBookings.map(b => ({
+            id: b.id,
+            title: 'Approve Demo Request',
+            desc: `${b.student.user.name} (${b.bookingType})`,
+            type: 'Demo',
+            bookingId: b.id
+        }));
         return {
             tutor: {
                 id: tutor.id,
@@ -87,6 +97,82 @@ let TutorsService = class TutorsService {
             image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.user.name.replace(' ', '')}`,
             isVerified: t.verificationStatus === 'VERIFIED'
         }));
+    }
+    async getPublicTutorDetails(tutorId) {
+        const tutor = await this.prisma.tutorProfile.findUnique({
+            where: { id: tutorId },
+            include: { user: { select: { name: true } } }
+        });
+        if (!tutor)
+            throw new common_1.NotFoundException('Tutor not found');
+        return {
+            id: tutor.id,
+            name: tutor.user.name,
+            subjects: ['Mathematics', 'Physics'],
+            qualification: tutor.qualification,
+            experience: `${tutor.experienceYears} years`,
+            hourlyRate: tutor.hourlyRate,
+            rating: 4.8,
+            reviews: 124,
+            image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${tutor.user.name.replace(' ', '')}`,
+            isVerified: tutor.verificationStatus === 'VERIFIED',
+            location: 'Remote',
+            about: tutor.bio || `I am an experienced educator passionate about teaching. I focus on building strong fundamentals and helping students achieve their academic goals.`,
+        };
+    }
+    async bookDemo(userId, tutorId, slotIndex) {
+        const student = await this.prisma.studentProfile.findUnique({ where: { userId } });
+        if (!student)
+            throw new Error("Only students can book demos.");
+        const scheduledAt = new Date();
+        scheduledAt.setDate(scheduledAt.getDate() + 1);
+        scheduledAt.setHours(16 + slotIndex, 0, 0, 0);
+        return this.prisma.booking.create({
+            data: {
+                tutorId,
+                studentId: student.id,
+                bookingType: 'ONE_ON_ONE',
+                scheduledAt,
+                duration: 60,
+                status: 'PENDING',
+                meetingLink: null,
+            }
+        });
+    }
+    async updateBookingStatus(bookingId, status) {
+        let bookingStatus = 'CONFIRMED';
+        if (status === 'REJECTED' || status === 'CANCELLED')
+            bookingStatus = 'CANCELLED';
+        return this.prisma.booking.update({
+            where: { id: bookingId },
+            data: { status: bookingStatus }
+        });
+    }
+    async scheduleClass(userId, data) {
+        const tutor = await this.prisma.tutorProfile.findUnique({ where: { userId } });
+        if (!tutor)
+            throw new common_1.NotFoundException('Tutor not found');
+        const student = await this.prisma.studentProfile.findFirst({
+            where: { user: { name: data.studentName } }
+        });
+        const studentId = student ? student.id : (await this.prisma.studentProfile.findFirst())?.id;
+        if (!studentId)
+            throw new Error("No student available to assign to this class.");
+        let scheduledAt = new Date();
+        if (data.time.toLowerCase().includes('tomorrow')) {
+            scheduledAt.setDate(scheduledAt.getDate() + 1);
+        }
+        return this.prisma.booking.create({
+            data: {
+                tutorId: tutor.id,
+                studentId: studentId,
+                bookingType: 'GROUP_BATCH',
+                scheduledAt: scheduledAt,
+                duration: 60,
+                status: 'CONFIRMED',
+                meetingLink: 'https://meet.google.com/mock-link',
+            }
+        });
     }
     create(createTutorDto) {
         return 'This action adds a new tutor';

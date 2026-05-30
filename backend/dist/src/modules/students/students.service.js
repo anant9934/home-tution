@@ -138,6 +138,70 @@ let StudentsService = class StudentsService {
             };
         });
     }
+    async getCourseCurriculum(userId, courseId) {
+        const studentId = await this.getStudentId(userId);
+        const course = await this.prisma.course.findUnique({
+            where: { id: courseId },
+            include: {
+                chapters: {
+                    orderBy: { order: 'asc' },
+                    include: {
+                        lessons: {
+                            orderBy: { order: 'asc' },
+                            include: { progress: { where: { studentId } } }
+                        }
+                    }
+                },
+                quizzes: {
+                    include: { attempts: { where: { studentId } } }
+                }
+            }
+        });
+        if (!course)
+            throw new common_1.NotFoundException('Course not found');
+        let globalId = 1;
+        const curriculum = [];
+        course.chapters.forEach(chapter => {
+            chapter.lessons.forEach(lesson => {
+                curriculum.push({
+                    id: globalId++,
+                    lessonId: lesson.id,
+                    title: lesson.title,
+                    type: 'video',
+                    duration: `${lesson.duration} mins`,
+                    videoUrl: lesson.videoUrl,
+                    completed: lesson.progress.length > 0 && lesson.progress[0].completed,
+                });
+            });
+        });
+        course.quizzes.forEach(quiz => {
+            curriculum.push({
+                id: globalId++,
+                quizId: quiz.id,
+                title: quiz.title,
+                type: 'quiz',
+                duration: `${quiz.duration} mins`,
+                completed: quiz.attempts.length > 0,
+            });
+        });
+        return { courseTitle: course.title, curriculum };
+    }
+    async markLessonComplete(userId, lessonId) {
+        const studentId = await this.getStudentId(userId);
+        const progress = await this.prisma.lessonProgress.upsert({
+            where: { studentId_lessonId: { studentId, lessonId } },
+            update: { completed: true },
+            create: { studentId, lessonId, completed: true }
+        });
+        await this.prisma.xP.create({
+            data: {
+                studentId,
+                points: 10,
+                source: 'LESSON',
+            }
+        });
+        return { success: true, progress };
+    }
     async getAttendance(userId) {
         const studentId = await this.getStudentId(userId);
         const records = await this.prisma.attendance.findMany({
@@ -194,6 +258,28 @@ let StudentsService = class StudentsService {
                 status: s.marks ? 'Graded' : 'Submitted'
             }))
         };
+    }
+    async submitAssignment(userId, assignmentId, submissionUrl) {
+        const studentId = await this.getStudentId(userId);
+        const assignment = await this.prisma.assignment.findUnique({ where: { id: assignmentId } });
+        if (!assignment)
+            throw new common_1.NotFoundException('Assignment not found');
+        const submission = await this.prisma.submission.create({
+            data: {
+                assignmentId,
+                studentId,
+                submissionUrl: submissionUrl || 'https://example.com/mock-submission.pdf',
+                submittedAt: new Date()
+            }
+        });
+        await this.prisma.xP.create({
+            data: {
+                studentId,
+                points: 50,
+                source: 'ASSIGNMENT',
+            }
+        });
+        return { success: true, submission };
     }
     async getQuizzes(userId) {
         const student = await this.prisma.studentProfile.findUnique({ where: { userId } });
@@ -309,6 +395,19 @@ let StudentsService = class StudentsService {
             school: profile.schoolName,
             joiningDate: profile.joiningDate.toISOString().split('T')[0]
         };
+    }
+    async updateProfile(userId, data) {
+        const studentId = await this.getStudentId(userId);
+        const name = data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : undefined;
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: {
+                ...(name && { name }),
+                ...(data.email && { email: data.email }),
+                ...(data.phone && { phone: data.phone })
+            }
+        });
+        return this.getProfile(userId);
     }
 };
 exports.StudentsService = StudentsService;

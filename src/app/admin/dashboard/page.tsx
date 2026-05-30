@@ -38,40 +38,62 @@ export default function AdminDashboardPage() {
     loadDashboard();
   }, []);
 
-  const handleApproveTutor = (id: string, name: string) => {
-     setData((prev: any) => ({
-        ...prev,
-        pendingTutors: prev.pendingTutors.filter((t: any) => t.id !== id),
-        stats: {
-           ...prev.stats,
-           totalTutors: prev.stats.totalTutors + 1
-        }
-     }));
-     toast.success(`${name} has been verified and added to the platform.`);
+  const handleApproveTutor = async (id: string, name: string) => {
+     try {
+        await fetchApi(`/admin/tutors/${id}/approve`, { method: "PATCH" });
+        setData((prev: any) => ({
+           ...prev,
+           pendingTutors: prev.pendingTutors.filter((t: any) => t.id !== id),
+           stats: {
+              ...prev.stats,
+              totalTutors: prev.stats.totalTutors + 1
+           }
+        }));
+        toast.success(`${name} has been verified and added to the platform.`);
+     } catch (err: any) {
+        toast.error(err.message || "Failed to approve tutor");
+     }
   };
 
-  const handleRejectTutor = (id: string, name: string) => {
-     setData((prev: any) => ({
-        ...prev,
-        pendingTutors: prev.pendingTutors.filter((t: any) => t.id !== id)
-     }));
-     toast.error(`${name}'s application was rejected.`);
+  const handleRejectTutor = async (id: string, name: string) => {
+     try {
+        await fetchApi(`/admin/tutors/${id}/reject`, { method: "PATCH" });
+        setData((prev: any) => ({
+           ...prev,
+           pendingTutors: prev.pendingTutors.filter((t: any) => t.id !== id)
+        }));
+        toast.error(`${name}'s application was rejected.`);
+     } catch (err: any) {
+        toast.error(err.message || "Failed to reject tutor");
+     }
   };
 
-  const handleAddCourse = (e: React.FormEvent) => {
+  const handleAddCourse = async (e: React.FormEvent) => {
      e.preventDefault();
-     setData((prev: any) => ({
-        ...prev,
-        stats: {
-           ...prev.stats,
-           totalCourses: prev.stats.totalCourses + 1
-        }
-     }));
-     setShowAddCourse(false);
-     setNewCourseName("");
-     setNewCourseCategory("");
-     setNewCourseInstructor("");
-     toast.success("New course successfully published.");
+     try {
+        await fetchApi("/admin/courses", {
+           method: "POST",
+           body: JSON.stringify({
+              title: newCourseName,
+              subject: newCourseCategory,
+              instructor: newCourseInstructor
+           })
+        });
+        setData((prev: any) => ({
+           ...prev,
+           stats: {
+              ...prev.stats,
+              totalCourses: prev.stats.totalCourses + 1
+           }
+        }));
+        setShowAddCourse(false);
+        setNewCourseName("");
+        setNewCourseCategory("");
+        setNewCourseInstructor("");
+        toast.success("New course successfully published.");
+     } catch (err: any) {
+        toast.error(err.message || "Failed to create course");
+     }
   };
 
   if (loading) {

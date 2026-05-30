@@ -42,48 +42,55 @@ export default function TeacherDashboardPage() {
     loadDashboard();
   }, []);
 
-  const handleAction = (req: any, action: "approve" | "reject") => {
-     if (action === "approve") {
-        toast.success("Demo request approved!");
-        // Simulate adding to schedule
-        setData((prev: any) => ({
-          ...prev,
-          actionRequired: prev.actionRequired.filter((r: any) => r.id !== req.id),
-          schedule: [...prev.schedule, {
-             id: Math.random().toString(),
-             student: req.desc,
-             title: "1-on-1 Tuition",
-             subject: req.type + " Demo",
-             time: new Date().toISOString(),
-             status: "PENDING"
-          }]
-        }));
-     } else {
-        toast.error("Demo request rejected.");
-        setData((prev: any) => ({
-          ...prev,
-          actionRequired: prev.actionRequired.filter((r: any) => r.id !== req.id)
-        }));
+  const handleAction = async (req: any, action: "approve" | "reject") => {
+     try {
+        const status = action === "approve" ? "CONFIRMED" : "REJECTED";
+        await fetchApi(`/tutors/bookings/${req.bookingId}/status`, {
+           method: "PATCH",
+           body: JSON.stringify({ status })
+        });
+        
+        if (action === "approve") {
+           toast.success("Demo request approved!");
+           // Refresh dashboard data to reflect the new schedule
+           const dashboardData = await fetchApi("/tutors/dashboard");
+           setData(dashboardData);
+        } else {
+           toast.error("Demo request rejected.");
+           setData((prev: any) => ({
+             ...prev,
+             actionRequired: prev.actionRequired.filter((r: any) => r.id !== req.id)
+           }));
+        }
+     } catch (err: any) {
+        toast.error(err.message || "Failed to process request");
      }
   };
 
-  const handleScheduleClass = (e: React.FormEvent) => {
+  const handleScheduleClass = async (e: React.FormEvent) => {
      e.preventDefault();
-     setData((prev: any) => ({
-        ...prev,
-        schedule: [...prev.schedule, {
-           id: Math.random().toString(),
-           student: newClassStudent || "Batch A",
-           title: newClassSubject || "Extra Class",
-           time: newClassTime || "Tomorrow, 10:00 AM",
-           status: "PENDING"
-        }]
-     }));
-     setShowScheduleModal(false);
-     setNewClassSubject("");
-     setNewClassTime("");
-     setNewClassStudent("");
-     toast.success("Extra class scheduled successfully!");
+     try {
+        await fetchApi("/tutors/bookings", {
+           method: "POST",
+           body: JSON.stringify({
+              title: newClassSubject || "Extra Class",
+              studentName: newClassStudent || "Batch A",
+              time: newClassTime || "Tomorrow, 10:00 AM"
+           })
+        });
+        
+        setShowScheduleModal(false);
+        setNewClassSubject("");
+        setNewClassTime("");
+        setNewClassStudent("");
+        toast.success("Extra class scheduled successfully!");
+        
+        // Refresh schedule
+        const dashboardData = await fetchApi("/tutors/dashboard");
+        setData(dashboardData);
+     } catch (err: any) {
+        toast.error(err.message || "Failed to schedule class");
+     }
   };
 
   if (loading) {

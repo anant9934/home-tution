@@ -1,20 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Star, MapPin, CheckCircle2, GraduationCap, Video, BookOpen, Clock, Calendar, ShieldCheck } from "lucide-react";
+import { Star, MapPin, CheckCircle2, GraduationCap, Video, BookOpen, Clock, Calendar, ShieldCheck, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { MOCK_TUTORS } from "@/lib/mock-data";
+import { Skeleton } from "@/components/ui/skeleton";
+import { fetchApi } from "@/lib/api";
+import { toast } from "sonner";
 
-export default function TutorProfilePage({ params }: { params: { slug: string } }) {
+export default function TutorProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const router = useRouter();
-  const tutor = MOCK_TUTORS.find(t => t.id === params.slug) || MOCK_TUTORS[0];
+  const resolvedParams = use(params);
+  
+  const [tutor, setTutor] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const [bookingStep, setBookingStep] = useState<"IDLE" | "MODAL" | "SUCCESS">("IDLE");
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
+  const [isBooking, setIsBooking] = useState(false);
+
+  useEffect(() => {
+    fetchApi(`/tutors/public/${resolvedParams.slug}`)
+      .then(res => setTutor(res))
+      .catch(err => setError(err.message || "Failed to load tutor profile"))
+      .finally(() => setLoading(false));
+  }, [resolvedParams.slug]);
 
   const slots = [
     "Tomorrow, 4:00 PM - 5:00 PM",
@@ -23,12 +37,43 @@ export default function TutorProfilePage({ params }: { params: { slug: string } 
     "Saturday, 10:00 AM - 11:00 AM",
   ];
 
-  const handleBookDemo = () => {
-    setBookingStep("SUCCESS");
-    setTimeout(() => {
-       router.push("/student/dashboard");
-    }, 2000);
+  const handleBookDemo = async () => {
+    if (selectedSlot === null) return;
+    setIsBooking(true);
+    try {
+      await fetchApi(`/tutors/public/${resolvedParams.slug}/book`, {
+         method: "POST",
+         body: JSON.stringify({ slotIndex: selectedSlot })
+      });
+      setBookingStep("SUCCESS");
+      setTimeout(() => {
+         router.push("/student/dashboard");
+      }, 2000);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to book demo");
+    } finally {
+      setIsBooking(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 pt-32 px-4 flex justify-center">
+        <Skeleton className="w-full max-w-5xl h-[70vh] rounded-3xl" />
+      </div>
+    );
+  }
+
+  if (error || !tutor) {
+    return (
+      <div className="min-h-screen bg-slate-50 pt-32 px-4 flex flex-col items-center justify-center">
+        <AlertCircle className="w-12 h-12 text-destructive mb-4" />
+        <h2 className="text-xl font-bold mb-2">Profile Not Found</h2>
+        <p className="text-muted-foreground">{error}</p>
+        <Button onClick={() => router.push("/tutors")} className="mt-6 rounded-xl">Back to Tutors</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
@@ -69,7 +114,7 @@ export default function TutorProfilePage({ params }: { params: { slug: string } 
                         </div>
 
                         <div className="flex gap-2">
-                           {tutor.subjects.map((sub, i) => (
+                           {tutor.subjects.map((sub: string, i: number) => (
                              <Badge key={i} variant="outline" className="bg-primary/5 text-primary border-primary/20">{sub}</Badge>
                            ))}
                         </div>
@@ -153,8 +198,10 @@ export default function TutorProfilePage({ params }: { params: { slug: string } 
                           ))}
                        </div>
                        <div className="flex gap-2 pt-2">
-                          <Button variant="ghost" onClick={() => setBookingStep("IDLE")} className="flex-1 rounded-xl">Cancel</Button>
-                          <Button disabled={selectedSlot === null} onClick={handleBookDemo} className="flex-1 rounded-xl">Confirm</Button>
+                          <Button variant="ghost" onClick={() => setBookingStep("IDLE")} className="flex-1 rounded-xl" disabled={isBooking}>Cancel</Button>
+                          <Button disabled={selectedSlot === null || isBooking} onClick={handleBookDemo} className="flex-1 rounded-xl">
+                            {isBooking ? "Booking..." : "Confirm"}
+                          </Button>
                        </div>
                     </div>
                   )}

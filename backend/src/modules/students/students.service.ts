@@ -146,6 +146,83 @@ export class StudentsService {
     });
   }
 
+  async getCourseCurriculum(userId: string, courseId: string) {
+    const studentId = await this.getStudentId(userId);
+
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        chapters: {
+          orderBy: { order: 'asc' },
+          include: {
+            lessons: {
+              orderBy: { order: 'asc' },
+              include: { progress: { where: { studentId } } }
+            }
+          }
+        },
+        quizzes: {
+          include: { attempts: { where: { studentId } } }
+        }
+      }
+    });
+
+    if (!course) throw new NotFoundException('Course not found');
+
+    let globalId = 1;
+    const curriculum: any[] = [];
+
+    // Map chapters and lessons
+    course.chapters.forEach(chapter => {
+       chapter.lessons.forEach(lesson => {
+         curriculum.push({
+           id: globalId++,
+           lessonId: lesson.id,
+           title: lesson.title,
+           type: 'video',
+           duration: `${lesson.duration} mins`,
+           videoUrl: lesson.videoUrl,
+           completed: lesson.progress.length > 0 && lesson.progress[0].completed,
+         });
+       });
+    });
+
+    // Append quizzes at the end (simplification for mock)
+    course.quizzes.forEach(quiz => {
+       curriculum.push({
+          id: globalId++,
+          quizId: quiz.id,
+          title: quiz.title,
+          type: 'quiz',
+          duration: `${quiz.duration} mins`,
+          completed: quiz.attempts.length > 0,
+       });
+    });
+
+    return { courseTitle: course.title, curriculum };
+  }
+
+  async markLessonComplete(userId: string, lessonId: string) {
+    const studentId = await this.getStudentId(userId);
+    
+    const progress = await this.prisma.lessonProgress.upsert({
+      where: { studentId_lessonId: { studentId, lessonId } },
+      update: { completed: true },
+      create: { studentId, lessonId, completed: true }
+    });
+
+    // Optionally award XP for completing a video
+    await this.prisma.xP.create({
+      data: {
+        studentId,
+        points: 10,
+        source: 'LESSON',
+      }
+    });
+
+    return { success: true, progress };
+  }
+
   // ─── ATTENDANCE ─────────────────────────────────────────────────────────
   async getAttendance(userId: string) {
     const studentId = await this.getStudentId(userId);
@@ -209,6 +286,33 @@ export class StudentsService {
         status: s.marks ? 'Graded' : 'Submitted'
       }))
     };
+  }
+
+  async submitAssignment(userId: string, assignmentId: string, submissionUrl: string) {
+    const studentId = await this.getStudentId(userId);
+    
+    const assignment = await this.prisma.assignment.findUnique({ where: { id: assignmentId } });
+    if (!assignment) throw new NotFoundException('Assignment not found');
+
+    const submission = await this.prisma.submission.create({
+      data: {
+        assignmentId,
+        studentId,
+        submissionUrl: submissionUrl || 'https://example.com/mock-submission.pdf',
+        submittedAt: new Date()
+      }
+    });
+
+    // Award XP for submitting assignment
+    await this.prisma.xP.create({
+      data: {
+        studentId,
+        points: 50, // Standard XP for assignment
+        source: 'ASSIGNMENT',
+      }
+    });
+
+    return { success: true, submission };
   }
 
   // ─── QUIZZES ────────────────────────────────────────────────────────────
@@ -345,5 +449,23 @@ export class StudentsService {
       school: profile.schoolName,
       joiningDate: profile.joiningDate.toISOString().split('T')[0]
     };
+  }
+
+  async updateProfile(userId: string, data: { firstName?: string; lastName?: string; email?: string; phone?: string }) {
+    const studentId = await this.getStudentId(userId);
+    
+    // Update User table details
+    const name = data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : undefined;
+    
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(name && { name }),
+        ...(data.email && { email: data.email }),
+        ...(data.phone && { phone: data.phone })
+      }
+    });
+
+    return this.getProfile(userId);
   }
 }

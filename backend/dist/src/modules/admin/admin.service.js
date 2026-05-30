@@ -62,6 +62,35 @@ let AdminService = class AdminService {
             }))
         };
     }
+    async updateTutorStatus(id, status) {
+        const tutor = await this.prisma.tutorProfile.findUnique({ where: { id } });
+        if (!tutor) {
+            throw new Error('Tutor not found');
+        }
+        return this.prisma.tutorProfile.update({
+            where: { id },
+            data: { verificationStatus: status, isVerified: status === 'VERIFIED' }
+        });
+    }
+    async createCourse(data) {
+        const tutor = await this.prisma.tutorProfile.findFirst({
+            where: { user: { name: data.instructor } }
+        });
+        const tutorId = tutor ? tutor.id : (await this.prisma.tutorProfile.findFirst({ where: { isVerified: true } }))?.id;
+        if (!tutorId) {
+            throw new Error("No verified tutor available to assign to this course.");
+        }
+        return this.prisma.course.create({
+            data: {
+                title: data.title,
+                subject: data.subject,
+                class: "General",
+                board: "General",
+                createdBy: tutorId,
+                isPublished: true,
+            }
+        });
+    }
 };
 exports.AdminService = AdminService;
 exports.AdminService = AdminService = __decorate([

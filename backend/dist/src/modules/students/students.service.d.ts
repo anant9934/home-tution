@@ -41,6 +41,20 @@ export declare class StudentsService {
             lessons: string[];
         }[];
     }[]>;
+    getCourseCurriculum(userId: string, courseId: string): Promise<{
+        courseTitle: string;
+        curriculum: any[];
+    }>;
+    markLessonComplete(userId: string, lessonId: string): Promise<{
+        success: boolean;
+        progress: {
+            id: string;
+            createdAt: Date;
+            studentId: string;
+            lessonId: string;
+            completed: boolean;
+        };
+    }>;
     getAttendance(userId: string): Promise<{
         stats: {
             presentDays: number;
@@ -72,6 +86,18 @@ export declare class StudentsService {
             score: string;
             status: string;
         }[];
+    }>;
+    submitAssignment(userId: string, assignmentId: string, submissionUrl: string): Promise<{
+        success: boolean;
+        submission: {
+            id: string;
+            studentId: string;
+            submittedAt: Date;
+            assignmentId: string;
+            submissionUrl: string;
+            marks: number | null;
+            feedback: string | null;
+        };
     }>;
     getQuizzes(userId: string): Promise<{
         pending: {
@@ -146,6 +172,21 @@ export declare class StudentsService {
         type: string;
     })[]>;
     getProfile(userId: string): Promise<{
+        id: string;
+        name: string;
+        email: string;
+        phone: string | null;
+        class: string;
+        board: string;
+        school: string | null;
+        joiningDate: string;
+    }>;
+    updateProfile(userId: string, data: {
+        firstName?: string;
+        lastName?: string;
+        email?: string;
+        phone?: string;
+    }): Promise<{
         id: string;
         name: string;
         email: string;

@@ -24,4 +24,37 @@ export declare class AdminService {
             status: import("src/generated/prisma").$Enums.BookingStatus;
         }[];
     }>;
+    updateTutorStatus(id: string, status: string): Promise<{
+        id: string;
+        isVerified: boolean;
+        userId: string;
+        bio: string | null;
+        experienceYears: number;
+        qualification: string | null;
+        hourlyRate: number;
+        languages: string[];
+        subjects: string[];
+        teachingMode: string;
+        rating: number;
+        totalReviews: number;
+        verificationStatus: string;
+        introVideoUrl: string | null;
+    }>;
+    createCourse(data: {
+        title: string;
+        subject: string;
+        instructor: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        class: string;
+        board: string;
+        title: string;
+        description: string | null;
+        subject: string;
+        thumbnail: string | null;
+        createdBy: string;
+        isPublished: boolean;
+    }>;
 }

@@ -59,4 +59,41 @@ export class AdminService {
       }))
     };
   }
+
+  async updateTutorStatus(id: string, status: string) {
+    const tutor = await this.prisma.tutorProfile.findUnique({ where: { id } });
+    if (!tutor) {
+      throw new Error('Tutor not found');
+    }
+    return this.prisma.tutorProfile.update({
+      where: { id },
+      data: { verificationStatus: status, isVerified: status === 'VERIFIED' }
+    });
+  }
+
+  async createCourse(data: { title: string; subject: string; instructor: string }) {
+    // For instructor we are assuming Admin assigns a tutor by name for mock, 
+    // but in reality we should find a tutor.
+    const tutor = await this.prisma.tutorProfile.findFirst({
+      where: { user: { name: data.instructor } }
+    });
+    
+    // Fallback to any verified tutor if not found by name
+    const tutorId = tutor ? tutor.id : (await this.prisma.tutorProfile.findFirst({ where: { isVerified: true } }))?.id;
+    
+    if (!tutorId) {
+       throw new Error("No verified tutor available to assign to this course.");
+    }
+
+    return this.prisma.course.create({
+      data: {
+        title: data.title,
+        subject: data.subject,
+        class: "General", // Default for now
+        board: "General", // Default for now
+        createdBy: tutorId,
+        isPublished: true,
+      }
+    });
+  }
 }
