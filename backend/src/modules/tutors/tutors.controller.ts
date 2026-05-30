@@ -42,28 +42,51 @@ export class TutorsController {
     return this.tutorsService.scheduleClass(req.user.userId, body);
   }
 
-  @Post()
-  create(@Body() createTutorDto: CreateTutorDto) {
-    return this.tutorsService.create(createTutorDto);
+  @UseGuards(JwtAuthGuard)
+  @Get('students')
+  getStudents(@Request() req: any) {
+    return this.tutorsService.getStudents(req.user.userId);
   }
 
-  @Get()
-  findAll() {
-    return this.tutorsService.findAll();
+  @UseGuards(JwtAuthGuard)
+  @Get('classes')
+  getClasses(@Request() req: any) {
+    return this.tutorsService.getClasses(req.user.userId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.tutorsService.findOne(+id);
+  @UseGuards(JwtAuthGuard)
+  @Get('assignments')
+  getAssignments(@Request() req: any) {
+    return this.tutorsService.getAssignments(req.user.userId);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTutorDto: UpdateTutorDto) {
-    return this.tutorsService.update(+id, updateTutorDto);
+  @UseGuards(JwtAuthGuard)
+  @Get('quizzes')
+  getQuizzes(@Request() req: any) {
+    return this.tutorsService.getQuizzes(req.user.userId);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.tutorsService.remove(+id);
+  @UseGuards(JwtAuthGuard)
+  @Get('attendance')
+  getAttendance(@Request() req: any) {
+    return this.tutorsService.getAttendance(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('earnings')
+  getEarnings(@Request() req: any) {
+    return this.tutorsService.getEarnings(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  getProfile(@Request() req: any) {
+    return this.tutorsService.getProfile(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  updateProfile(@Request() req: any, @Body() body: any) {
+    return this.tutorsService.updateProfile(req.user.userId, body);
   }
 }
