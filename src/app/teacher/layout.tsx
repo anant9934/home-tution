@@ -1,20 +1,25 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { BookOpen, LayoutDashboard, Users, Book, ClipboardList, PenTool, CalendarCheck, MessageSquare, IndianRupee, User, Bell } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Students", href: "/students", icon: Users },
-  { name: "Classes", href: "/classes", icon: Book },
-  { name: "Assignments", href: "/assignments", icon: ClipboardList },
-  { name: "Quizzes", href: "/quizzes", icon: PenTool },
-  { name: "Attendance", href: "/attendance", icon: CalendarCheck },
-  { name: "Messages", href: "/messages", icon: MessageSquare },
-  { name: "Earnings", href: "/earnings", icon: IndianRupee },
-  { name: "Profile", href: "/profile", icon: User },
+  { name: "Dashboard", href: "/teacher/dashboard", icon: LayoutDashboard },
+  { name: "Students", href: "/teacher/students", icon: Users },
+  { name: "Classes", href: "/teacher/classes", icon: Book },
+  { name: "Assignments", href: "/teacher/assignments", icon: ClipboardList },
+  { name: "Quizzes", href: "/teacher/quizzes", icon: PenTool },
+  { name: "Attendance", href: "/teacher/attendance", icon: CalendarCheck },
+  { name: "Messages", href: "/teacher/messages", icon: MessageSquare },
+  { name: "Earnings", href: "/teacher/earnings", icon: IndianRupee },
+  { name: "Profile", href: "/teacher/profile", icon: User },
 ];
 
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       
@@ -30,16 +35,19 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-1">
-           {navItems.map((item) => (
-             <Link 
-               key={item.name} 
-               href={item.href}
-               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors ${item.name === 'Dashboard' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
-             >
-               <item.icon className="w-5 h-5" />
-               {item.name}
-             </Link>
-           ))}
+           {navItems.map((item) => {
+             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+             return (
+               <Link 
+                 key={item.name} 
+                 href={item.href}
+                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+               >
+                 <item.icon className="w-5 h-5" />
+                 {item.name}
+               </Link>
+             );
+           })}
         </div>
         
         <div className="p-4 border-t">
@@ -89,16 +97,20 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       <div className="lg:hidden fixed bottom-0 left-0 right-0 border-t bg-white z-50 pb-safe">
          <div className="flex justify-around items-center h-16 px-2">
             {[
-              { name: "Classes", href: "/classes", icon: Book },
-              { name: "Students", href: "/students", icon: Users },
-              { name: "Assignments", href: "/assignments", icon: ClipboardList },
-              { name: "Profile", href: "/profile", icon: User },
-            ].map(item => (
-              <Link key={item.name} href={item.href} className={`flex flex-col items-center justify-center w-16 gap-1 ${item.name === 'Classes' ? 'text-primary' : 'text-muted-foreground'}`}>
-                 <item.icon className="w-5 h-5" />
-                 <span className="text-[10px] font-medium">{item.name}</span>
-              </Link>
-            ))}
+              { name: "Home", href: "/teacher/dashboard", icon: LayoutDashboard },
+              { name: "Classes", href: "/teacher/classes", icon: Book },
+              { name: "Students", href: "/teacher/students", icon: Users },
+              { name: "Assignments", href: "/teacher/assignments", icon: ClipboardList },
+              { name: "Profile", href: "/teacher/profile", icon: User },
+            ].map(item => {
+              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link key={item.name} href={item.href} className={`flex flex-col items-center justify-center w-16 gap-1 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+                   <item.icon className="w-5 h-5" />
+                   <span className="text-[10px] font-medium">{item.name}</span>
+                </Link>
+              );
+            })}
          </div>
       </div>
 
