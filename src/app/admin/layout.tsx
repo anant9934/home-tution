@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, LayoutDashboard, Users, UserCog, Book, CreditCard, LineChart, Settings, HelpCircle, Bell } from "lucide-react";
+import { BookOpen, LayoutDashboard, Users, UserCog, Book, CreditCard, LineChart, Settings, HelpCircle, Bell, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationsPopover } from "@/components/NotificationsPopover";
+import { useAuth } from "@/lib/use-auth";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const navItems = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -20,6 +22,27 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user, loading, logout, getInitials } = useAuth(["ADMIN", "SUPER_ADMIN"]);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="bg-primary text-primary-foreground p-3 rounded-xl animate-pulse">
+            <BookOpen className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-24 mx-auto" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  const initials = getInitials();
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -52,16 +75,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         
         <div className="p-4 border-t bg-muted/50">
-           <div className="flex items-center gap-3">
+           <div className="flex items-center gap-3 mb-3">
               <Avatar>
-                 <AvatarImage src="" />
-                 <AvatarFallback className="bg-primary text-primary-foreground font-bold">AD</AvatarFallback>
+                 <AvatarImage src={user.avatarUrl || ""} />
+                 <AvatarFallback className="bg-primary text-primary-foreground font-bold">{initials}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                 <p className="text-sm font-semibold truncate">System Admin</p>
-                 <p className="text-[10px] text-muted-foreground truncate">Super User</p>
+                 <p className="text-sm font-semibold truncate">{user.name}</p>
+                 <p className="text-[10px] text-muted-foreground truncate">{user.role}</p>
               </div>
            </div>
+           <button 
+             onClick={logout}
+             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-destructive transition-colors w-full px-3 py-2 rounded-xl hover:bg-destructive/5"
+           >
+             <LogOut className="w-4 h-4" />
+             Sign out
+           </button>
         </div>
       </aside>
 
