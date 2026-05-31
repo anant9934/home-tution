@@ -120,11 +120,11 @@ export default function TeacherQuizzesPage() {
           <p className="text-muted-foreground mt-1">Create multiple-choice quizzes, assess performance automatically.</p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
+          <DialogTrigger render={
             <Button className="rounded-full shadow-sm gap-2">
               <Plus className="w-4 h-4" /> Create New Quiz
             </Button>
-          </DialogTrigger>
+          } />
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Create New Quiz</DialogTitle>

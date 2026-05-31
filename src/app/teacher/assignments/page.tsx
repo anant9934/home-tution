@@ -113,11 +113,11 @@ export default function TeacherAssignmentsPage() {
         </div>
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
+          <DialogTrigger render={
             <Button className="rounded-full shadow-sm gap-2">
               <Plus className="w-4 h-4" /> Create Assignment
             </Button>
-          </DialogTrigger>
+          } />
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Create New Assignment</DialogTitle>

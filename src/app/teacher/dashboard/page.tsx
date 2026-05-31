@@ -53,6 +53,7 @@ export default function TeacherDashboardPage() {
      try {
         if (action === "approve" && !link) {
            setDemoApprovalReq(req);
+           setDemoMeetingLink(`https://meet.jit.si/HomeTuition-Demo-${Math.random().toString(36).substring(2, 10)}`);
            return;
         }
 
@@ -146,9 +147,9 @@ export default function TeacherDashboardPage() {
       
       {/* VIRTUAL CLASSROOM MODAL */}
       {activeMeeting && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex flex-col animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 bg-black flex flex-col animate-in fade-in duration-200">
            {/* Header */}
-           <div className="h-16 border-b border-white/10 flex items-center justify-between px-6 text-white">
+           <div className="h-16 border-b border-white/10 flex items-center justify-between px-6 text-white shrink-0 bg-slate-900">
               <div className="flex items-center gap-3">
                  <div className="w-8 h-8 rounded bg-primary flex items-center justify-center">
                     <Video className="w-4 h-4 text-white" />
@@ -157,68 +158,28 @@ export default function TeacherDashboardPage() {
                     <div className="font-bold font-heading">{activeMeeting.title || activeMeeting.subject}</div>
                     <div className="text-xs text-white/60">with {activeMeeting.student || "Student"}</div>
                  </div>
-                 <Badge variant="outline" className="border-red-500 text-red-500 animate-pulse ml-2 bg-red-500/10">● REC</Badge>
+                 <Badge variant="outline" className="border-red-500 text-red-500 animate-pulse ml-2 bg-red-500/10">● LIVE</Badge>
               </div>
-              <div className="text-sm text-white/50 bg-white/5 px-3 py-1 rounded-full">00:04:12</div>
+              <Button variant="destructive" className="rounded-full font-bold px-6 shadow-lg shadow-destructive/20" onClick={() => setActiveMeeting(null)}>
+                 End Class / Leave
+              </Button>
            </div>
            
-           {/* Video Grid */}
-           <div className="flex-1 p-6 flex flex-col md:flex-row gap-6 justify-center items-center">
-              {/* Student Screen (Large for Teacher) */}
-              <div className="relative w-full max-w-4xl aspect-video bg-gray-900 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-                 <img src="https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?auto=format&fit=crop&q=80&w=1200" alt="Student" className="w-full h-full object-cover opacity-80" />
-                 <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-lg border border-white/10 font-medium">
-                    {activeMeeting.student || "Student"}
-                 </div>
-                 <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white/80 p-2 rounded-lg border border-white/10">
-                    <Mic className="w-4 h-4" />
-                 </div>
-              </div>
-              
-              {/* Teacher Screen (Small) */}
-              <div className="relative w-48 md:w-64 aspect-video bg-gray-800 rounded-2xl overflow-hidden border border-white/20 shadow-xl md:self-end">
-                 {camOn ? (
-                    <img src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=400" alt="You" className="w-full h-full object-cover" />
-                 ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                       <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold text-xl">Dr</div>
-                    </div>
-                 )}
-                 <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white text-[10px] px-2 py-1 rounded-md border border-white/10">
-                    You
-                 </div>
-                 {!micOn && (
-                    <div className="absolute top-2 right-2 bg-red-500/80 backdrop-blur-md text-white p-1 rounded-md">
-                       <MicOff className="w-3 h-3" />
-                    </div>
-                 )}
-              </div>
-           </div>
-           
-           {/* Controls Bottom Bar */}
-           <div className="h-24 border-t border-white/10 flex items-center justify-center gap-4">
-              <Button 
-                variant={micOn ? "secondary" : "destructive"} 
-                size="icon" 
-                className="w-12 h-12 rounded-full"
-                onClick={() => setMicOn(!micOn)}
-              >
-                 {micOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-              </Button>
-              <Button 
-                variant={camOn ? "secondary" : "destructive"} 
-                size="icon" 
-                className="w-12 h-12 rounded-full"
-                onClick={() => setCamOn(!camOn)}
-              >
-                 {camOn ? <Camera className="w-5 h-5" /> : <CameraOff className="w-5 h-5" />}
-              </Button>
-              <Button variant="secondary" size="icon" className="w-12 h-12 rounded-full">
-                 <MonitorUp className="w-5 h-5" />
-              </Button>
-              <Button variant="destructive" className="h-12 px-8 rounded-full font-bold ml-4 shadow-lg shadow-destructive/20" onClick={() => setActiveMeeting(null)}>
-                 End Class
-              </Button>
+           {/* Video iframe */}
+           <div className="flex-1 w-full bg-black relative">
+              {activeMeeting.meetingLink ? (
+                <iframe 
+                  src={activeMeeting.meetingLink} 
+                  allow="camera; microphone; fullscreen; display-capture; autoplay"
+                  className="w-full h-full border-0 absolute inset-0"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-white space-y-4">
+                  <AlertCircle className="w-12 h-12 text-muted-foreground" />
+                  <p>No meeting link provided for this class.</p>
+                  <Button variant="outline" className="text-black" onClick={() => setActiveMeeting(null)}>Close</Button>
+                </div>
+              )}
            </div>
         </div>
       )}

@@ -145,9 +145,9 @@ export default function TeacherMessagesPage() {
                   <MessageSquare className="w-5 h-5 text-primary" /> Messages
                </h2>
                <Dialog open={isNewModalOpen} onOpenChange={setIsNewModalOpen}>
-                 <DialogTrigger asChild>
-                   <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full"><Plus className="w-4 h-4" /></Button>
-                 </DialogTrigger>
+                 <DialogTrigger render={
+                    <Button variant="ghost" size="icon" className="rounded-full shrink-0 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"><Plus className="w-4 h-4" /></Button>
+                 } />
                  <DialogContent className="sm:max-w-[425px]">
                    <DialogHeader>
                      <DialogTitle>Start New Conversation</DialogTitle>

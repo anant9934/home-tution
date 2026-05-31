@@ -93,11 +93,11 @@ export default function TeacherAttendancePage() {
            </div>
            
            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-             <DialogTrigger asChild>
+             <DialogTrigger render={
                <Button className="rounded-full shadow-sm gap-2 whitespace-nowrap">
                  <Plus className="w-4 h-4" /> Mark Attendance
                </Button>
-             </DialogTrigger>
+             } />
              <DialogContent className="sm:max-w-[425px]">
                <DialogHeader>
                  <DialogTitle>Mark Student Attendance</DialogTitle>
