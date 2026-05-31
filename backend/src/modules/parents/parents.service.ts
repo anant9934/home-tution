@@ -171,14 +171,45 @@ export class ParentsService {
         })
       : [];
 
-    const feedback = gradedSubmissions.length > 0
-      ? gradedSubmissions.map((s) => ({
-          tutorName: 'Teacher',
-          subject: s.assignment.course?.subject || 'General',
-          date: s.submittedAt.toISOString(),
-          note: s.feedback!,
-        }))
+    // For graded submissions, look up the tutor user via createdBy (TutorProfile.id)
+    const gradedSubmissionsWithCourse = gradedSubmissions.length > 0
+      ? await this.prisma.submission.findMany({
+          where: { studentId: child.id, feedback: { not: null } },
+          include: {
+            assignment: { include: { course: true } },
+          },
+          orderBy: { submittedAt: 'desc' },
+          take: 3,
+        })
+      : [];
+
+    // Resolve tutor users for graded submissions
+    const tutorUserMap: Record<string, { userId: string; name: string }> = {};
+    for (const s of gradedSubmissionsWithCourse) {
+      const tutorId = s.assignment.course?.createdBy;
+      if (tutorId && !tutorUserMap[tutorId]) {
+        const tutor = await this.prisma.tutorProfile.findUnique({
+          where: { id: tutorId },
+          include: { user: true },
+        });
+        if (tutor) tutorUserMap[tutorId] = { userId: tutor.userId, name: tutor.user.name };
+      }
+    }
+
+    const feedback = gradedSubmissionsWithCourse.length > 0
+      ? gradedSubmissionsWithCourse.map((s) => {
+          const tutorId = s.assignment.course?.createdBy;
+          const tutorInfo = tutorId ? tutorUserMap[tutorId] : null;
+          return {
+            tutorUserId: tutorInfo?.userId || null,
+            tutorName: tutorInfo?.name || 'Teacher',
+            subject: s.assignment.course?.subject || 'General',
+            date: s.submittedAt.toISOString(),
+            note: s.feedback!,
+          };
+        })
       : recentBookings.map((b) => ({
+          tutorUserId: b.tutor.userId,
           tutorName: b.tutor.user.name,
           subject: b.tutor.subjects?.[0] || 'Tutor',
           date: b.scheduledAt.toISOString(),
@@ -532,6 +563,31 @@ export class ParentsService {
         schoolName: c.schoolName,
       })),
     };
+  }
+
+  // ─── Mark Messages Read ───────────────────────────────────────────────
+  async markMessagesRead(userId: string, conversationId: string) {
+    // Verify user is a participant
+    const conversation = await this.prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        participants: { some: { id: userId } },
+      },
+    });
+    if (!conversation) {
+      throw new NotFoundException('Conversation not found or access denied');
+    }
+
+    await this.prisma.message.updateMany({
+      where: {
+        conversationId,
+        senderId: { not: userId },
+        seen: false,
+      },
+      data: { seen: true },
+    });
+
+    return { success: true };
   }
 
   // ─── Update Profile ───────────────────────────────────────────────────

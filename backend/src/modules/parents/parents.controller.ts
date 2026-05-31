@@ -50,6 +50,11 @@ export class ParentsController {
     return this.parentsService.getMessages(req.user.userId);
   }
 
+  @Patch('messages/:conversationId/read')
+  markMessagesRead(@Request() req: any, @Param('conversationId') conversationId: string) {
+    return this.parentsService.markMessagesRead(req.user.userId, conversationId);
+  }
+
   @Post('messages')
   sendMessage(@Request() req: any, @Body() dto: SendMessageDto) {
     return this.parentsService.sendMessage(req.user.userId, dto);

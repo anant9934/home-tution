@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const SETTINGS_FILE = path.join(process.cwd(), 'data', 'platform-settings.json');
 
 @Injectable()
 export class AdminService {
@@ -11,15 +15,14 @@ export class AdminService {
     const totalTutors = await this.prisma.tutorProfile.count({ where: { verificationStatus: 'VERIFIED' } });
     const totalCourses = await this.prisma.course.count();
     
-    // Revenue Calculation (Sum of all completed bookings)
-    const completedBookings = await this.prisma.booking.findMany({
-      where: { status: 'COMPLETED' },
-      include: { tutor: true }
+    // Revenue Calculation (Sum of all SUCCESS payments)
+    const successPayments = await this.prisma.payment.findMany({
+      where: { status: 'SUCCESS' }
     });
     
     let totalRevenue = 0;
-    completedBookings.forEach(b => {
-      totalRevenue += (b.duration / 60) * b.tutor.hourlyRate;
+    successPayments.forEach(p => {
+      totalRevenue += p.amount;
     });
 
     // Pending Tutors
@@ -46,7 +49,7 @@ export class AdminService {
       pendingTutors: pendingTutors.map(t => ({
         id: t.id,
         name: t.user.name,
-        subject: 'General', // Would be derived from tutor subjects
+        subject: t.subjects.length > 0 ? t.subjects[0] : 'General',
         docStatus: t.verificationStatus,
         appliedAt: t.user.createdAt
       })),
@@ -55,7 +58,8 @@ export class AdminService {
         student: b.student.user.name,
         tutor: b.tutor.user.name,
         amount: `₹${((b.duration / 60) * b.tutor.hourlyRate).toFixed(0)}`,
-        status: b.status
+        status: b.status,
+        date: b.scheduledAt
       }))
     };
   }
@@ -71,15 +75,8 @@ export class AdminService {
     });
   }
 
-  async createCourse(data: { title: string; subject: string; instructor: string }) {
-    // For instructor we are assuming Admin assigns a tutor by name for mock, 
-    // but in reality we should find a tutor.
-    const tutor = await this.prisma.tutorProfile.findFirst({
-      where: { user: { name: data.instructor } }
-    });
-    
-    // Fallback to any verified tutor if not found by name
-    const tutorId = tutor ? tutor.id : (await this.prisma.tutorProfile.findFirst({ where: { isVerified: true } }))?.id;
+  async createCourse(data: { title: string; subject: string; instructorId: string }) {
+    const tutorId = data.instructorId || (await this.prisma.tutorProfile.findFirst({ where: { isVerified: true } }))?.id;
     
     if (!tutorId) {
        throw new Error("No verified tutor available to assign to this course.");
@@ -150,12 +147,53 @@ export class AdminService {
   }
 
   async getSettings() {
-    // Return mock settings since we don't have a settings table yet
+    try {
+      if (fs.existsSync(SETTINGS_FILE)) {
+        const data = fs.readFileSync(SETTINGS_FILE, 'utf-8');
+        return JSON.parse(data);
+      }
+    } catch (e) {
+      console.error('Failed to read settings', e);
+    }
+    
     return {
       platformFeePercentage: 15,
       allowNewRegistrations: true,
       maintenanceMode: false,
       contactEmail: 'support@edtech.com'
     };
+  }
+
+  async updateSettings(data: any) {
+    const currentSettings = await this.getSettings();
+    const newSettings = { ...currentSettings, ...data };
+    
+    try {
+      const dir = path.dirname(SETTINGS_FILE);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(SETTINGS_FILE, JSON.stringify(newSettings, null, 2));
+      return newSettings;
+    } catch (e) {
+      console.error('Failed to save settings', e);
+      throw new Error('Failed to save settings');
+    }
+  }
+
+  async updateStudentStatus(id: string, status: string) {
+    const profile = await this.prisma.studentProfile.findUnique({ where: { id }, include: { user: true } });
+    if (!profile) throw new Error("Student not found");
+    return this.prisma.user.update({
+      where: { id: profile.userId },
+      data: { status }
+    });
+  }
+
+  async updateCourseStatus(id: string, isPublished: boolean) {
+    return this.prisma.course.update({
+      where: { id },
+      data: { isPublished }
+    });
   }
 }

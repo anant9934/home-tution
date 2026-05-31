@@ -89,13 +89,31 @@ export class StudentsService {
       take: 2,
     });
 
-    const pendingTasks = allAssignments.map(a => ({
-      id: a.id,
-      title: a.title,
-      type: 'Assignment',
-      subject: a.course.subject,
-      due: a.deadline.toISOString().split('T')[0]
-    }));
+    const allQuizzes = await this.prisma.quiz.findMany({
+      where: { 
+        course: { class: student.class, board: student.board },
+        attempts: { none: { studentId } }
+      },
+      include: { course: true },
+      take: 2,
+    });
+
+    const pendingTasks = [
+      ...allAssignments.map(a => ({
+        id: a.id,
+        title: a.title,
+        type: 'Assignment',
+        subject: a.course.subject,
+        due: a.deadline.toISOString().split('T')[0]
+      })),
+      ...allQuizzes.map(q => ({
+        id: q.id,
+        title: q.title,
+        type: 'Quiz',
+        subject: q.course.subject,
+        due: 'No Deadline'
+      }))
+    ];
 
     return {
       studentName: student.user.name,
@@ -107,7 +125,8 @@ export class StudentsService {
         id: b.id,
         title: b.bookingType === 'ONE_ON_ONE' ? '1-on-1 Class' : 'Group Batch',
         time: b.scheduledAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        tutor: b.tutor.user.name
+        tutor: b.tutor.user.name,
+        meetingLink: b.meetingLink
       })),
       recentAchievements: student.badges.map(b => b.badge.name)
     };

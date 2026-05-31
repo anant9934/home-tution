@@ -103,7 +103,7 @@ export class TutorsService {
     return tutors.map(t => ({
       id: t.id,
       name: t.user.name,
-      subjects: ['Mathematics', 'Physics'], // Currently mocked until subjects are added to schema
+      subjects: t.subjects.length > 0 ? t.subjects : ['General'],
       qualification: t.qualification,
       experience: `${t.experienceYears} years`,
       hourlyRate: `₹${t.hourlyRate}`,
@@ -125,7 +125,7 @@ export class TutorsService {
     return {
       id: tutor.id,
       name: tutor.user.name,
-      subjects: ['Mathematics', 'Physics'], // Currently mocked subjects
+      subjects: tutor.subjects.length > 0 ? tutor.subjects : ['General'],
       qualification: tutor.qualification,
       experience: `${tutor.experienceYears} years`,
       hourlyRate: tutor.hourlyRate,
@@ -231,7 +231,7 @@ export class TutorsService {
         scheduledAt: scheduledAt,
         duration: 60,
         status: 'CONFIRMED',
-        meetingLink: 'https://meet.google.com/mock-link',
+        meetingLink: `https://meet.jit.si/HomeTuition-${Math.random().toString(36).substring(2, 10)}`,
       }
     });
   }
