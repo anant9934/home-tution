@@ -50,13 +50,14 @@ async function main() {
   });
 
   // Create Admin User
+  const adminPasswordHash = await bcrypt.hash('superadmin123', 10);
   await prisma.user.upsert({
-    where: { email: 'admin@edtech.com' },
+    where: { email: 'newadmin@edtech.com' },
     update: {},
     create: {
-      email: 'admin@edtech.com',
-      passwordHash,
-      name: 'System Admin',
+      email: 'newadmin@edtech.com',
+      passwordHash: adminPasswordHash,
+      name: 'Super Admin',
       role: 'ADMIN',
     },
   });
