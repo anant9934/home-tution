@@ -65,8 +65,8 @@ export default function AdminStudentsPage() {
   }
 
   const filteredStudents = students.filter(s => 
-    s.user?.name?.toLowerCase().includes(search.toLowerCase()) || 
-    s.user?.email?.toLowerCase().includes(search.toLowerCase())
+    (s.user?.name?.toLowerCase() || "").includes(search.toLowerCase()) || 
+    (s.user?.email?.toLowerCase() || "").includes(search.toLowerCase())
   );
 
   return (

@@ -62,8 +62,8 @@ export default function AdminTutorsPage() {
   }
 
   const filteredTutors = tutors.filter(t => 
-    t.user?.name?.toLowerCase().includes(search.toLowerCase()) || 
-    t.user?.email?.toLowerCase().includes(search.toLowerCase())
+    (t.user?.name?.toLowerCase() || "").includes(search.toLowerCase()) || 
+    (t.user?.email?.toLowerCase() || "").includes(search.toLowerCase())
   );
 
   return (
