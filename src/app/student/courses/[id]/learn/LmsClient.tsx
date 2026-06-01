@@ -11,8 +11,10 @@ import { fetchApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function LmsClient({ courseId }: { courseId: string }) {
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
   const [curriculum, setCurriculum] = useState<any[]>([]);
@@ -52,7 +54,12 @@ export default function LmsClient({ courseId }: { courseId: string }) {
   const handleNextLesson = () => {
     if (!activeLessonId) return;
     const nextLesson = curriculum.find(l => l.id === activeLessonId + 1);
-    if (nextLesson) setActiveLessonId(nextLesson.id);
+    if (nextLesson) {
+       setActiveLessonId(nextLesson.id);
+    } else {
+       toast.success("Course Completed!");
+       router.push("/student/dashboard");
+    }
   };
 
   const submitAnswer = async () => {
@@ -100,6 +107,20 @@ export default function LmsClient({ courseId }: { courseId: string }) {
 
   if (loading) {
      return <div className="p-8 flex justify-center"><Skeleton className="w-full h-[60vh] rounded-3xl" /></div>;
+  }
+
+  if (curriculum.length === 0) {
+    return (
+      <div className="flex h-screen bg-slate-50 items-center justify-center">
+         <div className="text-center bg-white p-10 rounded-3xl border shadow-sm max-w-md w-full">
+            <h2 className="text-2xl font-bold font-heading mb-3">Content Coming Soon</h2>
+            <p className="text-muted-foreground mb-8 text-sm">The tutor hasn't uploaded any lessons or quizzes for this course yet. Please check back later.</p>
+            <Link href="/student/dashboard">
+               <Button className="rounded-full w-full font-bold shadow-md h-12">Back to Dashboard</Button>
+            </Link>
+         </div>
+      </div>
+    );
   }
 
   return (
