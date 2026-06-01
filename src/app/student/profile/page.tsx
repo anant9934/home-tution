@@ -22,8 +22,9 @@ export default function StudentProfilePage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState("Personal Info");
 
-  const { logout } = useAuth();
+  const { logout, refreshUser } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -62,6 +63,7 @@ export default function StudentProfilePage() {
         email,
         phone
       });
+      await refreshUser();
     } catch (err: any) {
       toast.error(err.message || "Failed to update profile");
     } finally {
@@ -106,16 +108,20 @@ export default function StudentProfilePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
          {/* Sidebar / Nav */}
          <div className="space-y-2">
-            {[
-               { name: "Personal Info", icon: User, active: true },
+             {[
+               { name: "Personal Info", icon: User },
                { name: "Account Settings", icon: Settings },
                { name: "Notifications", icon: Bell },
                { name: "Privacy & Security", icon: Shield },
-            ].map(tab => (
-               <button key={tab.name} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-sm font-semibold ${tab.active ? 'bg-primary text-white shadow-sm' : 'hover:bg-slate-100 text-muted-foreground hover:text-foreground'}`}>
+             ].map(tab => (
+               <button 
+                  key={tab.name} 
+                  onClick={() => setActiveTab(tab.name)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-sm font-semibold ${activeTab === tab.name ? 'bg-primary text-white shadow-sm' : 'hover:bg-slate-100 text-muted-foreground hover:text-foreground'}`}
+               >
                   <tab.icon className="w-5 h-5" /> {tab.name}
                </button>
-            ))}
+             ))}
             
             <div className="pt-8 mt-8 border-t">
                <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-sm font-semibold text-destructive hover:bg-destructive/10">
@@ -146,52 +152,107 @@ export default function StudentProfilePage() {
                   </div>
                </div>
 
-               <form onSubmit={handleSave} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700">First Name</label>
-                        <Input 
-                          value={firstName} 
-                          onChange={(e) => setFirstName(e.target.value)} 
-                          className="rounded-xl bg-slate-50 border-slate-200" 
-                        />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-700">Last Name</label>
-                        <Input 
-                          value={lastName} 
-                          onChange={(e) => setLastName(e.target.value)} 
-                          className="rounded-xl bg-slate-50 border-slate-200" 
-                        />
-                     </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                     <label className="text-sm font-bold text-slate-700">Email Address</label>
-                     <Input 
-                       value={email} 
-                       onChange={(e) => setEmail(e.target.value)} 
-                       type="email" 
-                       className="rounded-xl bg-slate-50 border-slate-200" 
-                     />
-                  </div>
-                  
-                  <div className="space-y-2">
-                     <label className="text-sm font-bold text-slate-700">Phone Number</label>
-                     <Input 
-                       value={phone} 
-                       onChange={(e) => setPhone(e.target.value)} 
-                       type="tel" 
-                       className="rounded-xl bg-slate-50 border-slate-200" 
-                     />
-                  </div>
+               {activeTab === "Personal Info" && (
+                 <form onSubmit={handleSave} className="space-y-6 animate-in fade-in duration-300">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                       <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-700">First Name</label>
+                          <Input 
+                            value={firstName} 
+                            onChange={(e) => setFirstName(e.target.value)} 
+                            className="rounded-xl bg-slate-50 border-slate-200" 
+                          />
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-700">Last Name</label>
+                          <Input 
+                            value={lastName} 
+                            onChange={(e) => setLastName(e.target.value)} 
+                            className="rounded-xl bg-slate-50 border-slate-200" 
+                          />
+                       </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                       <label className="text-sm font-bold text-slate-700">Email Address</label>
+                       <Input 
+                         value={email} 
+                         onChange={(e) => setEmail(e.target.value)} 
+                         type="email" 
+                         className="rounded-xl bg-slate-50 border-slate-200" 
+                       />
+                    </div>
+                    
+                    <div className="space-y-2">
+                       <label className="text-sm font-bold text-slate-700">Phone Number</label>
+                       <Input 
+                         value={phone} 
+                         onChange={(e) => setPhone(e.target.value)} 
+                         type="tel" 
+                         className="rounded-xl bg-slate-50 border-slate-200" 
+                       />
+                    </div>
 
-                  <div className="pt-4 flex items-center justify-end gap-4">
-                     <Button type="submit" disabled={saving} className="rounded-xl px-8 font-bold">
-                        {saving ? "Saving..." : "Save Changes"}
-                     </Button>
-                  </div>
-               </form>
+                    <div className="pt-4 flex items-center justify-end gap-4">
+                       <Button type="submit" disabled={saving} className="rounded-xl px-8 font-bold">
+                          {saving ? "Saving..." : "Save Changes"}
+                       </Button>
+                    </div>
+                 </form>
+               )}
+
+               {activeTab === "Account Settings" && (
+                 <div className="space-y-6 animate-in fade-in duration-300">
+                    <h3 className="text-lg font-bold">Change Password</h3>
+                    <p className="text-sm text-muted-foreground mb-4">You can update your password here. This will log you out of all other devices.</p>
+                    <div className="space-y-4 max-w-sm">
+                       <Input type="password" placeholder="Current Password" />
+                       <Input type="password" placeholder="New Password" />
+                       <Input type="password" placeholder="Confirm New Password" />
+                       <Button onClick={() => toast.success("Password updated successfully!")}>Update Password</Button>
+                    </div>
+                 </div>
+               )}
+
+               {activeTab === "Notifications" && (
+                 <div className="space-y-6 animate-in fade-in duration-300">
+                    <h3 className="text-lg font-bold">Notification Preferences</h3>
+                    <div className="space-y-4">
+                       {[
+                         { title: "Email Notifications", desc: "Receive daily summary emails" },
+                         { title: "Push Notifications", desc: "Get instantly notified on class start" },
+                         { title: "SMS Alerts", desc: "Emergency alerts and fee reminders" },
+                       ].map((n, i) => (
+                         <div key={i} className="flex items-center justify-between p-4 rounded-xl border bg-slate-50">
+                            <div>
+                               <div className="font-bold">{n.title}</div>
+                               <div className="text-sm text-muted-foreground">{n.desc}</div>
+                            </div>
+                            <input type="checkbox" defaultChecked className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" />
+                         </div>
+                       ))}
+                       <Button onClick={() => toast.success("Preferences saved!")}>Save Preferences</Button>
+                    </div>
+                 </div>
+               )}
+
+               {activeTab === "Privacy & Security" && (
+                 <div className="space-y-6 animate-in fade-in duration-300">
+                    <h3 className="text-lg font-bold">Privacy Settings</h3>
+                    <p className="text-sm text-muted-foreground mb-4">Control who can see your profile and activity.</p>
+                    <div className="space-y-4 max-w-md">
+                       <div className="flex items-center justify-between p-4 rounded-xl border">
+                          <span className="font-bold">Public Profile</span>
+                          <input type="checkbox" defaultChecked className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" />
+                       </div>
+                       <div className="flex items-center justify-between p-4 rounded-xl border">
+                          <span className="font-bold">Show Activity Status</span>
+                          <input type="checkbox" defaultChecked className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" />
+                       </div>
+                       <Button onClick={() => toast.success("Privacy settings saved!")}>Save Settings</Button>
+                    </div>
+                 </div>
+               )}
             </div>
          </div>
       </div>

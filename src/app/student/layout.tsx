@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { BookOpen, LayoutDashboard, Book, ClipboardList, PenTool, Trophy, CalendarCheck, MessageSquare, User, Bell, HelpCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationsPopover } from "@/components/NotificationsPopover";
+import { useAuth } from "@/lib/use-auth";
 
 const navItems = [
   { name: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
@@ -20,6 +21,7 @@ const navItems = [
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user, getGreeting, getInitials } = useAuth();
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -54,12 +56,15 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         <div className="p-4 border-t">
            <div className="flex items-center gap-3">
               <Avatar>
-                 <AvatarImage src="" />
-                 <AvatarFallback className="bg-primary-light text-primary font-bold">RV</AvatarFallback>
+                 <AvatarImage src={user?.avatarUrl || ""} />
+                 <AvatarFallback className="bg-primary-light text-primary font-bold">{getInitials()}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                 <p className="text-sm font-semibold truncate">Rahul Verma</p>
-                 <p className="text-xs text-muted-foreground truncate">Class 12 • Science</p>
+                 <p className="text-sm font-semibold truncate">{user?.name || "Student"}</p>
+                 <p className="text-xs text-muted-foreground truncate">
+                    {user?.studentProfile?.class ? `Class ${user.studentProfile.class}` : "Loading..."} 
+                    {user?.studentProfile?.board ? ` • ${user.studentProfile.board}` : ""}
+                 </p>
               </div>
            </div>
         </div>
@@ -78,7 +83,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             </div>
             
             <div className="hidden lg:flex items-center gap-4 text-sm">
-               <span className="font-semibold">Good Morning, Rahul! 👋</span>
+               <span className="font-semibold">{getGreeting()}, {user?.name?.split(' ')[0] || "Student"}! 👋</span>
                <span className="text-muted-foreground">Here's your learning progress today.</span>
             </div>
             

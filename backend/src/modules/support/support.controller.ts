@@ -9,7 +9,7 @@ export class SupportController {
   @UseGuards(JwtAuthGuard)
   @Post('tickets')
   createTicket(@Req() req: any, @Body() body: { title: string; description: string; priority?: string }) {
-    return this.supportService.createTicket(req.user.id, body.title, body.description, body.priority);
+    return this.supportService.createTicket(req.user.userId, body.title, body.description, body.priority);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -17,7 +17,7 @@ export class SupportController {
   getUserTickets(@Req() req: any) {
     // If Admin, they should use /admin/support/tickets ideally, but we can return all if admin?
     // Let's keep this strict to the logged-in user's own tickets.
-    return this.supportService.getUserTickets(req.user.id);
+    return this.supportService.getUserTickets(req.user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
