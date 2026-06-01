@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +36,20 @@ export default function AdminStudentsPage() {
     }
     loadStudents();
   }, []);
+
+  const handleStatusUpdate = async (id: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+      await fetchApi(`/admin/students/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus })
+      });
+      setStudents(prev => prev.map(s => s.id === id ? { ...s, user: { ...s.user, status: newStatus } } : s));
+      toast.success(`Student account ${newStatus.toLowerCase()} successfully.`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update account status.");
+    }
+  };
 
   if (loading) {
     return (
@@ -114,11 +129,14 @@ export default function AdminStudentsPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="gap-2 cursor-pointer">
+                              <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => toast.info('Full profile view coming soon!')}>
                                 <FileText className="h-4 w-4" /> View Full Profile
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
-                                <Ban className="h-4 w-4" /> Suspend Account
+                              <DropdownMenuItem 
+                                className={`gap-2 cursor-pointer ${s.user.status === 'ACTIVE' ? 'text-destructive focus:text-destructive focus:bg-destructive/10' : 'text-success focus:text-success focus:bg-success/10'}`}
+                                onClick={() => handleStatusUpdate(s.id, s.user.status)}
+                              >
+                                <Ban className="h-4 w-4" /> {s.user.status === 'ACTIVE' ? 'Suspend Account' : 'Activate Account'}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

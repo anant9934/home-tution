@@ -21,16 +21,11 @@ export default function StudentDashboardPage() {
   const [showXpToast, setShowXpToast] = useState(false);
   
   // Modals State
-  const [activeMeeting, setActiveMeeting] = useState<string | null>(null);
-  const [activeQuiz, setActiveQuiz] = useState<string | null>(null);
+  const [activeMeeting, setActiveMeeting] = useState<any | null>(null);
 
   // Virtual Classroom State
   const [micOn, setMicOn] = useState(false);
   const [camOn, setCamOn] = useState(true);
-
-  // Quiz State
-  const [quizStep, setQuizStep] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -49,35 +44,7 @@ export default function StudentDashboardPage() {
     loadData();
   }, []);
 
-  const handleFinishQuiz = async (taskId: string) => {
-    try {
-      // In a full implementation, we would send the score to the backend.
-      // For this interactive mockup, we just assume 100% score (10 marks)
-      const res = await fetchApi(`/students/quizzes/${taskId}/submit`, {
-        method: "POST",
-        body: JSON.stringify({ score: 10 }),
-      });
 
-      // 1. Close Quiz
-      setActiveQuiz(null);
-      // 2. Remove from pending tasks
-      setPendingTasks(prev => prev.filter(t => t.id !== taskId));
-      // 3. Add XP and Achievement
-      setXp(prev => prev + (res.xpEarned || 50));
-      setAchievements(prev => ["Quiz Master", ...prev]);
-      // 4. Show success toast
-      setShowXpToast(true);
-      setTimeout(() => setShowXpToast(false), 4000);
-      
-      // Reset Quiz state for next time
-      setTimeout(() => {
-        setQuizStep(0);
-        setSelectedAnswer(null);
-      }, 500);
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   if (loading) {
     return (
@@ -125,154 +92,36 @@ export default function StudentDashboardPage() {
 
       {/* VIRTUAL CLASSROOM MODAL */}
       {activeMeeting && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex flex-col animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 bg-black flex flex-col animate-in fade-in duration-200">
            {/* Header */}
-           <div className="h-16 border-b border-white/10 flex items-center justify-between px-6 text-white">
+           <div className="h-16 border-b border-white/10 flex items-center justify-between px-6 text-white shrink-0 bg-slate-900">
               <div className="flex items-center gap-3">
                  <div className="w-8 h-8 rounded bg-primary flex items-center justify-center">
                     <Video className="w-4 h-4 text-white" />
                  </div>
-                 <span className="font-bold font-heading">{activeMeeting}</span>
-                 <Badge variant="outline" className="border-red-500 text-red-500 animate-pulse ml-2 bg-red-500/10">● REC</Badge>
+                 <span className="font-bold font-heading">{activeMeeting.title || "Class"}</span>
+                 <Badge variant="outline" className="border-red-500 text-red-500 animate-pulse ml-2 bg-red-500/10">● LIVE</Badge>
               </div>
-              <div className="text-sm text-white/50 bg-white/5 px-3 py-1 rounded-full">00:14:23</div>
-           </div>
-           
-           {/* Video Grid */}
-           <div className="flex-1 p-6 flex flex-col md:flex-row gap-6 justify-center items-center">
-              {/* Tutor Screen (Large) */}
-              <div className="relative w-full max-w-4xl aspect-video bg-gray-900 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-                 <img src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=1200" alt="Tutor" className="w-full h-full object-cover opacity-80" />
-                 <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-lg border border-white/10 font-medium">
-                    Instructor
-                 </div>
-                 <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white/80 p-2 rounded-lg border border-white/10">
-                    <Mic className="w-4 h-4" />
-                 </div>
-              </div>
-              
-              {/* Student Screen (Small) */}
-              <div className="relative w-48 md:w-64 aspect-video bg-gray-800 rounded-2xl overflow-hidden border border-white/20 shadow-xl md:self-end">
-                 {camOn ? (
-                    <img src="https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?auto=format&fit=crop&q=80&w=400" alt="You" className="w-full h-full object-cover" />
-                 ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                       <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold text-xl">{data.studentName.charAt(0)}</div>
-                    </div>
-                 )}
-                 <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white text-[10px] px-2 py-1 rounded-md border border-white/10">
-                    You
-                 </div>
-                 {!micOn && (
-                    <div className="absolute top-2 right-2 bg-red-500/80 backdrop-blur-md text-white p-1 rounded-md">
-                       <MicOff className="w-3 h-3" />
-                    </div>
-                 )}
-              </div>
-           </div>
-           
-           {/* Controls Bottom Bar */}
-           <div className="h-24 border-t border-white/10 flex items-center justify-center gap-4">
-              <Button 
-                variant={micOn ? "secondary" : "destructive"} 
-                size="icon" 
-                className="w-12 h-12 rounded-full"
-                onClick={() => setMicOn(!micOn)}
-              >
-                 {micOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-              </Button>
-              <Button 
-                variant={camOn ? "secondary" : "destructive"} 
-                size="icon" 
-                className="w-12 h-12 rounded-full"
-                onClick={() => setCamOn(!camOn)}
-              >
-                 {camOn ? <Camera className="w-5 h-5" /> : <CameraOff className="w-5 h-5" />}
-              </Button>
-              <Button variant="secondary" size="icon" className="w-12 h-12 rounded-full">
-                 <MonitorUp className="w-5 h-5" />
-              </Button>
-              <Button variant="destructive" className="h-12 px-8 rounded-full font-bold ml-4 shadow-lg shadow-destructive/20" onClick={() => setActiveMeeting(null)}>
+              <Button variant="destructive" className="rounded-full font-bold px-6 shadow-lg shadow-destructive/20" onClick={() => setActiveMeeting(null)}>
                  Leave Class
               </Button>
            </div>
-        </div>
-      )}
-
-      {/* QUIZ MODAL */}
-      {activeQuiz && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-              
-              {/* Header */}
-              <div className="p-6 border-b flex items-center justify-between bg-slate-50">
-                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                       <FileText className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                       <h3 className="font-bold font-heading">{pendingTasks.find(t => t.id === activeQuiz)?.title}</h3>
-                       <p className="text-xs text-muted-foreground">Question {quizStep + 1} of 1</p>
-                    </div>
-                 </div>
-                 <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setActiveQuiz(null)}>
-                    <X className="w-5 h-5" />
-                 </Button>
-              </div>
-
-              {/* Body */}
-              <div className="p-8">
-                 {quizStep === 0 ? (
-                    <>
-                       <h4 className="text-xl font-bold mb-6">Take the quiz carefully!</h4>
-                       
-                       <div className="space-y-3">
-                          {["Option 1", "Option 2", "Option 3", "Option 4"].map((ans, i) => (
-                             <button
-                                key={i}
-                                onClick={() => setSelectedAnswer(i)}
-                                className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                                   selectedAnswer === i 
-                                   ? "border-primary bg-primary/5 shadow-sm" 
-                                   : "border-border hover:border-primary/30 hover:bg-slate-50"
-                                }`}
-                             >
-                                <div className="flex items-center gap-3">
-                                   <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                                      selectedAnswer === i ? "border-primary" : "border-muted-foreground/30"
-                                   }`}>
-                                      {selectedAnswer === i && <div className="w-3 h-3 bg-primary rounded-full" />}
-                                   </div>
-                                   <span className={`font-semibold ${selectedAnswer === i ? "text-primary" : "text-foreground"}`}>{ans}</span>
-                                </div>
-                             </button>
-                          ))}
-                       </div>
-                       
-                       <div className="mt-8 pt-6 border-t flex justify-end">
-                          <Button 
-                             disabled={selectedAnswer === null} 
-                             onClick={() => setQuizStep(1)}
-                             className="rounded-full px-8 gap-2 font-bold"
-                          >
-                             Submit Answer <ChevronRight className="w-4 h-4" />
-                          </Button>
-                       </div>
-                    </>
-                 ) : (
-                    <div className="text-center py-8">
-                       <div className="w-20 h-20 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-6 relative">
-                          <div className="absolute inset-0 bg-success/20 rounded-full animate-ping"></div>
-                          <CheckCircle2 className="w-10 h-10 text-success" />
-                       </div>
-                       <h4 className="text-2xl font-bold font-heading mb-2">Perfect Score!</h4>
-                       <p className="text-muted-foreground mb-8">You successfully completed the task.</p>
-                       <Button onClick={() => handleFinishQuiz(activeQuiz)} className="rounded-full px-8 font-bold w-full sm:w-auto">
-                          Claim Rewards
-                       </Button>
-                    </div>
-                 )}
-              </div>
+           
+           {/* Video iframe */}
+           <div className="flex-1 w-full bg-black relative">
+              {activeMeeting.meetingLink ? (
+                <iframe 
+                  src={activeMeeting.meetingLink} 
+                  allow="camera; microphone; fullscreen; display-capture; autoplay"
+                  className="w-full h-full border-0 absolute inset-0"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-white space-y-4">
+                  <AlertCircle className="w-12 h-12 text-muted-foreground" />
+                  <p>No meeting link provided for this class.</p>
+                  <Button variant="outline" className="text-black" onClick={() => setActiveMeeting(null)}>Close</Button>
+                </div>
+              )}
            </div>
         </div>
       )}
@@ -325,9 +174,11 @@ export default function StudentDashboardPage() {
                                  <p className="text-xs text-muted-foreground mt-0.5">{task.subject}</p>
                               </div>
                            </div>
-                           <Button onClick={() => setActiveQuiz(task.id)} className="shrink-0 rounded-xl">
-                              Start {task.type}
-                           </Button>
+                           <Link href={task.type === "Quiz" ? "/student/quizzes" : "/student/assignments"}>
+                              <Button className="shrink-0 rounded-xl">
+                                 Start {task.type}
+                              </Button>
+                           </Link>
                         </div>
                      ))}
                   </div>
@@ -392,7 +243,7 @@ export default function StudentDashboardPage() {
                           <div className="text-xs text-muted-foreground mb-3">{cls.time} • {cls.tutor}</div>
                           <Button 
                              size="sm" 
-                             onClick={() => setActiveMeeting(cls.title)}
+                             onClick={() => setActiveMeeting(cls)}
                              className="w-full text-xs h-8 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors"
                           >
                              Join Meeting

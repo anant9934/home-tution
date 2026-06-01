@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function AdminCoursesPage() {
   const [courses, setCourses] = useState<any[]>([]);
@@ -28,6 +29,20 @@ export default function AdminCoursesPage() {
       setLoading(false);
     }
   }
+
+  const handleTogglePublish = async (id: string, currentStatus: boolean) => {
+    try {
+      const newStatus = !currentStatus;
+      await fetchApi(`/admin/courses/${id}/publish`, {
+        method: 'PATCH',
+        body: JSON.stringify({ isPublished: newStatus })
+      });
+      setCourses(prev => prev.map(c => c.id === id ? { ...c, isPublished: newStatus } : c));
+      toast.success(`Course ${newStatus ? 'published' : 'unpublished'} successfully.`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update course status.");
+    }
+  };
 
   if (loading) {
     return (
@@ -99,8 +114,13 @@ export default function AdminCoursesPage() {
                           </Badge>
                        </td>
                        <td className="px-6 py-4 text-right">
-                          <Button variant="ghost" size="sm" className="font-semibold text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5">
-                             <EyeOff className="w-4 h-4" /> Unpublish
+                          <Button 
+                             onClick={() => handleTogglePublish(c.id, c.isPublished)}
+                             variant="ghost" 
+                             size="sm" 
+                             className={`font-semibold gap-1.5 ${c.isPublished ? 'text-destructive hover:text-destructive hover:bg-destructive/10' : 'text-success hover:text-success hover:bg-success/10'}`}
+                          >
+                             <EyeOff className="w-4 h-4" /> {c.isPublished ? 'Unpublish' : 'Publish'}
                           </Button>
                        </td>
                     </tr>

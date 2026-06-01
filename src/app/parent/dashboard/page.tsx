@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CalendarCheck, LineChart, CreditCard, MessageSquare, AlertCircle, FileText, Download, CheckCircle2, X, Send, BarChart, Clock, Loader2 } from "lucide-react";
+import { CalendarCheck, LineChart, CreditCard, MessageSquare, AlertCircle, FileText, CheckCircle2, X, Send, BarChart, Clock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChildSelector } from "@/components/ChildSelector";
 import { fetchApi } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -15,7 +16,7 @@ interface DashboardData {
   stats: { attendance: string; overallGrade: string; pendingFees: string; teacherNotesCount: number };
   performance: { title: string; score: number; color: string }[];
   homework: { title: string; subject: string; status: string; isWarning: boolean; marks?: number | null; maxMarks?: number }[];
-  feedback: { tutorName: string; subject: string; date: string; note: string }[];
+  feedback: { tutorUserId: string | null; tutorName: string; subject: string; date: string; note: string }[];
   upcomingClasses: { id: string; title: string; time: string; tutor: string; meetingLink?: string }[];
 }
 
@@ -23,25 +24,26 @@ export default function ParentDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
 
   // Payment State
-  const [payingFeeId, setPayingFeeId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<"IDLE" | "PROCESSING" | "SUCCESS">("IDLE");
 
   // Modals State
-  const [replyingTo, setReplyingTo] = useState<{ name: string; tutorUserId?: string } | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ name: string; tutorUserId: string | null } | null>(null);
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
   const [showReport, setShowReport] = useState(false);
 
   useEffect(() => {
     loadDashboard();
-  }, []);
+  }, [selectedChildId]);
 
   const loadDashboard = async () => {
     try {
       setLoading(true);
-      const result = await fetchApi("/parents/dashboard");
+      const query = selectedChildId ? `?childId=${selectedChildId}` : "";
+      const result = await fetchApi(`/parents/dashboard${query}`);
       setData(result);
       setError(null);
     } catch (err: any) {
@@ -54,20 +56,20 @@ export default function ParentDashboardPage() {
   const handlePayment = async () => {
     setPaymentStatus("PROCESSING");
     try {
-      // Find the first pending fee to pay
-      const feesData = await fetchApi("/parents/fees");
+      const feesData = await fetchApi(`/parents/fees${selectedChildId ? `?childId=${selectedChildId}` : ""}`);
       const pendingFee = feesData?.fees?.find((f: any) => f.status === "PENDING");
       if (!pendingFee) {
         toast.error("No pending fees found");
         setPaymentStatus("IDLE");
         return;
       }
-      setPayingFeeId(pendingFee.id);
       const result = await fetchApi(`/parents/fees/${pendingFee.id}/pay`, { method: "POST" });
       setPaymentStatus("SUCCESS");
       toast.success(`Payment successful! Transaction: ${result.transactionId}`);
-      // Reload dashboard to refresh stats
-      setTimeout(() => loadDashboard(), 2000);
+      setTimeout(() => {
+        setPaymentStatus("IDLE");
+        loadDashboard();
+      }, 3000);
     } catch (err: any) {
       toast.error(err.message);
       setPaymentStatus("IDLE");
@@ -78,13 +80,17 @@ export default function ParentDashboardPage() {
     e.preventDefault();
     if (!replyText.trim() || !replyingTo) return;
 
+    if (!replyingTo.tutorUserId) {
+      toast.error("Cannot identify the teacher. Please use the Messages page to send a message.");
+      return;
+    }
+
     setSendingReply(true);
     try {
-      // For now we use the tutor name to find the tutor — in production you'd pass tutorUserId
       await fetchApi("/parents/messages", {
         method: "POST",
         body: JSON.stringify({
-          tutorUserId: replyingTo.tutorUserId || replyingTo.name,
+          tutorUserId: replyingTo.tutorUserId,
           messageText: replyText,
         }),
       });
@@ -102,9 +108,12 @@ export default function ParentDashboardPage() {
   if (loading) {
     return (
       <div className="space-y-8 pb-20 lg:pb-8">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-64" />
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <Skeleton className="h-9 w-36 rounded-xl" />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {[1, 2, 3, 4].map(i => (
@@ -147,7 +156,7 @@ export default function ParentDashboardPage() {
 
   return (
     <div className="space-y-8 pb-20 lg:pb-8 relative">
-      
+
       {/* MESSAGE MODAL */}
       {replyingTo && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
@@ -162,7 +171,7 @@ export default function ParentDashboardPage() {
                  </Button>
               </div>
               <form onSubmit={handleSendReply} className="p-6">
-                 <textarea 
+                 <textarea
                     autoFocus
                     required
                     value={replyText}
@@ -197,7 +206,7 @@ export default function ParentDashboardPage() {
                     <X className="w-5 h-5" />
                  </Button>
               </div>
-              
+
               <div className="p-8 space-y-8">
                  {/* Overall Score */}
                  <div className="flex items-center gap-6 p-6 border rounded-2xl bg-success/5">
@@ -218,7 +227,7 @@ export default function ParentDashboardPage() {
                        </p>
                     </div>
                  </div>
-                 
+
                  {/* Subject Breakdown */}
                  <div>
                     <h4 className="font-bold font-heading mb-4">Subject Breakdown</h4>
@@ -234,26 +243,27 @@ export default function ParentDashboardPage() {
                        ))}
                     </div>
                  </div>
-                 
+
                  <Button className="w-full" variant="outline" onClick={() => setShowReport(false)}>Close Report</Button>
               </div>
            </div>
         </div>
       )}
 
-
-      <div className="flex justify-between items-end mb-8">
+      <div className="flex justify-between items-start mb-8 gap-4">
          <div>
             <h1 className="text-3xl font-bold font-heading">Overview</h1>
             <p className="text-muted-foreground mt-1">Here is how {childName.split(' ')[0]} is doing this week.</p>
          </div>
-         {data.children && data.children.length > 1 && (
-           <div className="text-sm text-muted-foreground bg-muted px-3 py-1.5 rounded-full">
-             Viewing: <span className="font-semibold text-foreground">{childName}</span>
-           </div>
-         )}
+         <ChildSelector
+           selectedChildId={selectedChildId}
+           onSelect={(id) => {
+             setSelectedChildId(id);
+             setPaymentStatus("IDLE");
+           }}
+         />
       </div>
-      
+
       {/* SUMMARY WIDGETS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
          {[
@@ -278,13 +288,13 @@ export default function ParentDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-         
+
          {/* PERFORMANCE & HOMEWORK */}
          <div className="space-y-6">
-            
+
             <div className="bg-white rounded-3xl border shadow-sm p-6">
                <h3 className="font-bold font-heading mb-6">Recent Performance</h3>
-               
+
                {performance.length > 0 ? (
                  <div className="space-y-6">
                     {performance.map((perf, i) => (
@@ -300,24 +310,24 @@ export default function ParentDashboardPage() {
                ) : (
                  <p className="text-sm text-muted-foreground text-center py-6">No performance data yet.</p>
                )}
-               
+
                <Button variant="outline" className="w-full mt-6 rounded-xl text-sm h-10" onClick={() => setShowReport(true)}>
                   View Detailed Report
                </Button>
             </div>
-            
+
             <div className="bg-white rounded-3xl border shadow-sm p-6">
                <h3 className="font-bold font-heading mb-4 flex items-center gap-2">
                  Homework Status
                </h3>
-               
+
                {homework.length > 0 ? (
                  <div className="space-y-4">
                     {homework.map((hw, i) => (
                       <div key={i} className={`flex items-start gap-4 p-4 border rounded-2xl ${hw.isWarning ? 'border-amber-200 bg-amber-50/50' : ''}`}>
                          {hw.isWarning ? <AlertCircle className="w-8 h-8 text-amber-500 shrink-0" /> : <FileText className="w-8 h-8 text-muted-foreground shrink-0" />}
                          <div className="flex-1">
-                            <h4 className={`font-bold text-sm ${hw.isWarning ? '' : ''}`}>{hw.title}</h4>
+                            <h4 className="font-bold text-sm">{hw.title}</h4>
                             <p className="text-xs text-muted-foreground mt-1">{hw.subject}</p>
                          </div>
                          <div className={`text-xs font-bold px-2 py-1 rounded-md w-fit ${hw.isWarning ? 'text-amber-700 bg-amber-100' : 'text-green-700 bg-green-100'}`}>
@@ -345,20 +355,30 @@ export default function ParentDashboardPage() {
                       <div className="text-xs text-muted-foreground mb-2">
                         {new Date(cls.time).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })} at {new Date(cls.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} • {cls.tutor}
                       </div>
+                      {cls.meetingLink && (
+                        <a
+                          href={cls.meetingLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-semibold text-primary hover:underline"
+                        >
+                          Join Class →
+                        </a>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
             )}
-            
+
          </div>
-         
+
          {/* FEEDBACK & FEES */}
          <div className="space-y-6">
-            
+
             <div className="bg-white rounded-3xl border shadow-sm p-6">
                <h3 className="font-bold font-heading mb-4">Teacher Feedback</h3>
-               
+
                {feedback.length > 0 ? (
                  <div className="space-y-4 divide-y">
                     {feedback.map((fb, i) => (
@@ -370,13 +390,17 @@ export default function ParentDashboardPage() {
                          <p className="text-sm text-muted-foreground leading-relaxed">
                            &quot;{fb.note}&quot;
                          </p>
-                         <Button 
-                            variant="link" 
-                            className="px-0 h-auto text-primary mt-2 text-xs font-semibold"
-                            onClick={() => setReplyingTo({ name: fb.tutorName })}
-                         >
-                            Reply to Teacher
-                         </Button>
+                         {fb.tutorUserId ? (
+                           <Button
+                              variant="link"
+                              className="px-0 h-auto text-primary mt-2 text-xs font-semibold"
+                              onClick={() => setReplyingTo({ name: fb.tutorName, tutorUserId: fb.tutorUserId })}
+                           >
+                              Reply to Teacher
+                           </Button>
+                         ) : (
+                           <p className="text-xs text-muted-foreground mt-2 italic">Go to Messages to reply</p>
+                         )}
                       </div>
                     ))}
                  </div>
@@ -384,11 +408,11 @@ export default function ParentDashboardPage() {
                  <p className="text-sm text-muted-foreground text-center py-6">No feedback yet.</p>
                )}
             </div>
-            
+
             <div className="bg-primary/5 border border-primary/10 rounded-3xl p-6 relative overflow-hidden transition-all duration-500">
                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3"></div>
                <h3 className="font-bold font-heading mb-2 relative z-10">Fee Summary</h3>
-               
+
                {paymentStatus === "SUCCESS" ? (
                   <div className="relative z-10 bg-white p-8 rounded-2xl shadow-sm text-center mt-6 animate-in zoom-in-95 duration-300">
                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 relative">
@@ -401,7 +425,7 @@ export default function ParentDashboardPage() {
                ) : (
                   <>
                      <p className="text-xs text-muted-foreground mb-6 relative z-10">Current fee status for {childName.split(' ')[0]}.</p>
-                     
+
                      <div className="bg-white p-4 rounded-2xl shadow-sm border mb-4 relative z-10 flex justify-between items-center">
                         <div>
                           <div className="text-xs text-muted-foreground font-medium mb-1">Outstanding Amount</div>
@@ -411,16 +435,16 @@ export default function ParentDashboardPage() {
                           {stats.pendingFees === "₹0" ? "All Clear" : "Pending"}
                         </div>
                      </div>
-                     
+
                      {stats.pendingFees !== "₹0" && (
                        <div className="flex gap-3 relative z-10">
-                          <Button 
-                            onClick={handlePayment} 
+                          <Button
+                            onClick={handlePayment}
                             disabled={paymentStatus === "PROCESSING"}
                             className="flex-1 rounded-xl font-semibold shadow-sm transition-all"
                           >
                             {paymentStatus === "PROCESSING" ? (
-                              <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Processing...</>
+                              <><Loader2 className="w-4 h-4 animate-spin mr-2" />Processing...</>
                             ) : "Pay Now"}
                           </Button>
                        </div>
@@ -428,7 +452,7 @@ export default function ParentDashboardPage() {
                   </>
                )}
             </div>
-            
+
          </div>
 
       </div>

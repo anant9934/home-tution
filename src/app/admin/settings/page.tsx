@@ -30,11 +30,17 @@ export default function AdminSettingsPage() {
 
   const handleSave = async () => {
      setSaving(true);
-     // Simulate API call to save settings
-     setTimeout(() => {
-        setSaving(false);
-        toast.success("Global settings saved successfully!");
-     }, 1000);
+     try {
+       await fetchApi("/admin/settings", {
+         method: "POST",
+         body: JSON.stringify(settings)
+       });
+       toast.success("Global settings saved successfully!");
+     } catch (err: any) {
+       toast.error(err.message || "Failed to save settings");
+     } finally {
+       setSaving(false);
+     }
   };
 
   if (loading) {

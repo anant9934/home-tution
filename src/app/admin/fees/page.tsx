@@ -13,6 +13,23 @@ export default function AdminFeesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Stats
+  const totalCollected = fees.filter(f => f.status === 'PAID').reduce((sum, f) => sum + f.amount, 0);
+  const totalPending = fees.filter(f => f.status !== 'PAID').reduce((sum, f) => sum + f.amount, 0);
+
+  const handleExportCsv = () => {
+    if (fees.length === 0) return;
+    const header = "Invoice ID,Student,Amount,Due Date,Status\n";
+    const rows = fees.map(f => `${f.id},"${f.student?.user?.name || ''}",${f.amount},${new Date(f.dueDate).toLocaleDateString()},${f.status}`).join("\n");
+    const blob = new Blob([header + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fees-export-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   useEffect(() => {
     async function loadFees() {
       try {
@@ -53,10 +70,21 @@ export default function AdminFeesPage() {
            <Button variant="outline" className="rounded-full shadow-sm gap-2">
              <Filter className="w-4 h-4" /> Filter
            </Button>
-           <Button variant="default" className="rounded-full shadow-sm gap-2 bg-slate-900 hover:bg-slate-800">
+           <Button variant="default" onClick={handleExportCsv} className="rounded-full shadow-sm gap-2 bg-slate-900 hover:bg-slate-800">
              <Download className="w-4 h-4" /> Export CSV
            </Button>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+         <div className="bg-white border rounded-2xl p-4 shadow-sm">
+            <p className="text-sm font-medium text-muted-foreground mb-1">Total Collected</p>
+            <p className="text-2xl font-bold font-heading text-success flex items-center"><IndianRupee className="w-5 h-5" /> {totalCollected.toLocaleString()}</p>
+         </div>
+         <div className="bg-white border rounded-2xl p-4 shadow-sm">
+            <p className="text-sm font-medium text-muted-foreground mb-1">Total Pending</p>
+            <p className="text-2xl font-bold font-heading text-warning flex items-center"><IndianRupee className="w-5 h-5" /> {totalPending.toLocaleString()}</p>
+         </div>
       </div>
 
       <div className="bg-white border rounded-3xl overflow-hidden shadow-sm">
@@ -83,7 +111,7 @@ export default function AdminFeesPage() {
                        </td>
                        <td className="px-6 py-4 font-bold text-base flex items-center gap-1">
                           <IndianRupee className="w-4 h-4 text-muted-foreground" />
-                          {f.amount}
+                          {f.amount.toLocaleString()}
                        </td>
                        <td className="px-6 py-4 font-medium text-muted-foreground">
                           {new Date(f.dueDate).toLocaleDateString()}

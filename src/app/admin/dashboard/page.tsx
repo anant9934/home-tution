@@ -23,6 +23,7 @@ export default function AdminDashboardPage() {
   const [newCourseName, setNewCourseName] = useState("");
   const [newCourseCategory, setNewCourseCategory] = useState("");
   const [newCourseInstructor, setNewCourseInstructor] = useState("");
+  const [tutorsList, setTutorsList] = useState<any[]>([]);
   
   useEffect(() => {
     async function loadDashboard() {
@@ -35,7 +36,17 @@ export default function AdminDashboardPage() {
         setLoading(false);
       }
     }
+    async function loadTutors() {
+      try {
+        const tutorsData = await fetchApi("/admin/tutors");
+        // Only show verified tutors in the dropdown
+        setTutorsList(tutorsData.filter((t: any) => t.isVerified));
+      } catch (err: any) {
+        // ignore
+      }
+    }
     loadDashboard();
+    loadTutors();
   }, []);
 
   const handleApproveTutor = async (id: string, name: string) => {
@@ -76,7 +87,7 @@ export default function AdminDashboardPage() {
            body: JSON.stringify({
               title: newCourseName,
               subject: newCourseCategory,
-              instructor: newCourseInstructor
+              instructorId: newCourseInstructor
            })
         });
         setData((prev: any) => ({
@@ -154,13 +165,18 @@ export default function AdminDashboardPage() {
                     />
                  </div>
                  <div className="space-y-2">
-                    <label className="text-sm font-semibold">Instructor Name</label>
-                    <Input 
+                    <label className="text-sm font-semibold">Instructor</label>
+                    <select 
                        required 
-                       placeholder="e.g. Arjun Mehta" 
                        value={newCourseInstructor}
                        onChange={e => setNewCourseInstructor(e.target.value)}
-                    />
+                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                       <option value="" disabled>Select an instructor...</option>
+                       {tutorsList.map(t => (
+                         <option key={t.id} value={t.id}>{t.user.name}</option>
+                       ))}
+                    </select>
                  </div>
                  <Button type="submit" className="w-full font-bold mt-4">Publish Course</Button>
               </form>
@@ -205,7 +221,7 @@ export default function AdminDashboardPage() {
                                 <td className="p-4 font-mono text-xs">{txn.id}</td>
                                 <td className="p-4 font-medium">{txn.student}</td>
                                 <td className="p-4 font-bold text-success">{txn.amount}</td>
-                                <td className="p-4 text-muted-foreground">Recent</td>
+                                <td className="p-4 text-muted-foreground">{new Date(txn.date).toLocaleDateString()}</td>
                                 <td className="p-4">
                                    <span className="text-xs font-semibold px-2 py-1 rounded-md bg-success/10 text-success">
                                      {txn.status}

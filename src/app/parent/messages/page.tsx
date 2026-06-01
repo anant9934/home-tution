@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { MessageSquare, Send, AlertCircle, Loader2, User } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { MessageSquare, Send, AlertCircle, Loader2, ArrowLeft, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -33,10 +33,14 @@ export default function MessagesPage() {
   const [selectedConv, setSelectedConv] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
+  // Mobile: "list" | "chat"
+  const [mobileView, setMobileView] = useState<"list" | "chat">("list");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const result = await fetchApi("/parents/messages");
       setConversations(result);
       if (result.length > 0 && !selectedConv) {
@@ -44,13 +48,42 @@ export default function MessagesPage() {
       }
       setError(null);
     } catch (err: any) {
-      setError(err.message);
+      if (!silent) setError(err.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
+    }
+  }, [selectedConv]);
+
+  useEffect(() => {
+    loadMessages();
+    // Poll every 15 seconds for new messages
+    pollRef.current = setInterval(() => loadMessages(true), 15000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [selectedConv, conversations]);
+
+  // Mark messages as read when a conversation is selected
+  const handleSelectConversation = async (convId: string) => {
+    setSelectedConv(convId);
+    setMobileView("chat");
+
+    // Optimistically clear unread count
+    setConversations(prev =>
+      prev.map(c => c.id === convId ? { ...c, unreadCount: 0 } : c)
+    );
+
+    try {
+      await fetchApi(`/parents/messages/${convId}/read`, { method: "PATCH" });
+    } catch {
+      // non-critical — ignore silently
     }
   };
-
-  useEffect(() => { loadMessages(); }, []);
 
   const selectedConversation = conversations.find(c => c.id === selectedConv);
 
@@ -68,7 +101,7 @@ export default function MessagesPage() {
         }),
       });
       setReplyText("");
-      await loadMessages();
+      await loadMessages(true);
       toast.success("Message sent!");
     } catch (err: any) {
       toast.error(err.message);
@@ -95,19 +128,46 @@ export default function MessagesPage() {
         <AlertCircle className="w-12 h-12 text-destructive mb-4" />
         <h2 className="text-xl font-bold mb-2">Failed to load messages</h2>
         <p className="text-muted-foreground">{error}</p>
+        <Button className="mt-4 rounded-xl" onClick={() => loadMessages()}>Try Again</Button>
       </div>
     );
   }
 
+  const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
+
   return (
-    <div className="space-y-4 pb-20 lg:pb-8">
-      <div>
-        <h1 className="text-3xl font-bold font-heading">Messages</h1>
-        <p className="text-muted-foreground mt-1">Chat with your child&apos;s tutors.</p>
+    <div className="pb-20 lg:pb-8 flex flex-col" style={{ height: "calc(100vh - 5rem)" }}>
+      {/* Page Header — only visible on desktop or on mobile list view */}
+      <div className={`mb-4 flex items-center justify-between ${mobileView === "chat" ? "lg:flex hidden" : "flex"}`}>
+        <div>
+          <h1 className="text-3xl font-bold font-heading">Messages</h1>
+          <p className="text-muted-foreground mt-1">Chat with your child&apos;s tutors.</p>
+        </div>
+        <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => loadMessages(true)} title="Refresh">
+          <RefreshCw className="w-4 h-4" />
+        </Button>
       </div>
 
+      {/* Mobile chat header (back button) */}
+      {mobileView === "chat" && selectedConversation && (
+        <div className="lg:hidden flex items-center gap-3 mb-4 p-3 bg-white rounded-2xl border shadow-sm">
+          <Button variant="ghost" size="icon" className="rounded-xl shrink-0" onClick={() => setMobileView("list")}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <Avatar className="w-8 h-8 shrink-0">
+            <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+              {selectedConversation.otherUser?.name?.split(" ").map(n => n[0]).join("").slice(0, 2) || "?"}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h4 className="font-bold text-sm">{selectedConversation.otherUser?.name}</h4>
+            <p className="text-[10px] text-muted-foreground capitalize">{selectedConversation.otherUser?.role?.toLowerCase()}</p>
+          </div>
+        </div>
+      )}
+
       {conversations.length === 0 ? (
-        <div className="bg-white rounded-3xl border shadow-sm p-12 text-center">
+        <div className="bg-white rounded-3xl border shadow-sm p-12 text-center flex-1 flex flex-col items-center justify-center">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <MessageSquare className="w-8 h-8 text-primary" />
           </div>
@@ -115,17 +175,23 @@ export default function MessagesPage() {
           <p className="text-muted-foreground text-sm">Messages from tutors will appear here.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ height: "calc(100vh - 14rem)" }}>
-          {/* Conversation List */}
-          <div className="bg-white rounded-3xl border shadow-sm overflow-hidden flex flex-col">
-            <div className="p-4 border-b bg-slate-50">
-              <h3 className="font-bold text-sm">Conversations ({conversations.length})</h3>
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+
+          {/* Conversation List — always visible on desktop, hidden on mobile when chat is open */}
+          <div className={`bg-white rounded-3xl border shadow-sm overflow-hidden flex flex-col ${mobileView === "chat" ? "hidden lg:flex" : "flex"}`}>
+            <div className="p-4 border-b bg-slate-50 flex items-center justify-between shrink-0">
+              <h3 className="font-bold text-sm">
+                Conversations ({conversations.length})
+                {totalUnread > 0 && (
+                  <span className="ml-2 bg-primary text-primary-foreground text-[10px] font-bold rounded-full px-2 py-0.5">{totalUnread} unread</span>
+                )}
+              </h3>
             </div>
             <div className="flex-1 overflow-y-auto">
               {conversations.map((conv) => (
                 <button
                   key={conv.id}
-                  onClick={() => setSelectedConv(conv.id)}
+                  onClick={() => handleSelectConversation(conv.id)}
                   className={`w-full text-left p-4 border-b hover:bg-slate-50 transition-colors ${selectedConv === conv.id ? "bg-primary/5 border-l-2 border-l-primary" : ""}`}
                 >
                   <div className="flex items-start gap-3">
@@ -156,12 +222,12 @@ export default function MessagesPage() {
             </div>
           </div>
 
-          {/* Message Thread */}
-          <div className="lg:col-span-2 bg-white rounded-3xl border shadow-sm overflow-hidden flex flex-col">
+          {/* Message Thread — always visible on desktop, visible only in "chat" mode on mobile */}
+          <div className={`lg:col-span-2 bg-white rounded-3xl border shadow-sm overflow-hidden flex flex-col ${mobileView === "list" ? "hidden lg:flex" : "flex"}`}>
             {selectedConversation ? (
               <>
-                {/* Header */}
-                <div className="p-4 border-b bg-slate-50 flex items-center gap-3">
+                {/* Header — desktop only (mobile shows the header bar above) */}
+                <div className="hidden lg:flex p-4 border-b bg-slate-50 items-center gap-3 shrink-0">
                   <Avatar className="w-8 h-8">
                     <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
                       {selectedConversation.otherUser?.name?.split(" ").map(n => n[0]).join("").slice(0, 2) || "?"}
@@ -175,6 +241,11 @@ export default function MessagesPage() {
 
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {selectedConversation.messages.length === 0 && (
+                    <div className="flex items-center justify-center h-full text-center text-sm text-muted-foreground">
+                      No messages yet. Say hello! 👋
+                    </div>
+                  )}
                   {selectedConversation.messages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.isOwn ? "justify-end" : "justify-start"}`}>
                       <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${
@@ -184,14 +255,16 @@ export default function MessagesPage() {
                         <p className={`text-[10px] mt-1 ${msg.isOwn ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                           {new Date(msg.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} •{" "}
                           {new Date(msg.date).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
+                          {msg.isOwn && msg.seen && " · ✓✓"}
                         </p>
                       </div>
                     </div>
                   ))}
+                  <div ref={messagesEndRef} />
                 </div>
 
                 {/* Reply Input */}
-                <form onSubmit={handleSend} className="p-4 border-t bg-white">
+                <form onSubmit={handleSend} className="p-4 border-t bg-white shrink-0">
                   <div className="flex gap-3">
                     <input
                       type="text"
@@ -213,6 +286,7 @@ export default function MessagesPage() {
               </div>
             )}
           </div>
+
         </div>
       )}
     </div>

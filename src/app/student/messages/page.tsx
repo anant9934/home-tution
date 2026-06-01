@@ -35,13 +35,13 @@ export default function StudentMessagesPage() {
 
   useEffect(() => {
     fetchConversations();
-    // Poll every 10 seconds for new messages
+    // Poll every half second for new messages
     const interval = setInterval(() => {
       if (!loading && !sending) {
         fetchConversations();
         if (activeContact) fetchMessages(activeContact.id);
       }
-    }, 10000);
+    }, 500);
     return () => clearInterval(interval);
   }, [activeContact]);
 

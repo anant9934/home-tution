@@ -41,7 +41,7 @@ export default function AdminTutorsPage() {
   const handleStatusUpdate = async (id: string, action: 'approve' | 'reject') => {
     try {
       await fetchApi(`/admin/tutors/${id}/${action}`, { method: 'PATCH' });
-      toast.success(`Tutor ${action}d successfully`);
+      toast.success(`Tutor ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
       loadTutors(); // Reload the list
     } catch (err: any) {
       toast.error(err.message || `Failed to ${action} tutor`);

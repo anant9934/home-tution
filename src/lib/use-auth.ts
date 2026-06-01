@@ -16,7 +16,7 @@ export function useAuth(requiredRole?: string | string[]) {
     if (loading) return;
 
     if (!user) {
-      router.replace("/login");
+      router.replace("/auth/login");
       return;
     }
 
@@ -31,7 +31,7 @@ export function useAuth(requiredRole?: string | string[]) {
           STUDENT: "/student/dashboard",
           PARENT: "/parent/dashboard",
         };
-        router.replace(roleRoutes[user.role] || "/login");
+        router.replace(roleRoutes[user.role] || "/auth/login");
       }
     }
   }, [user, loading, requiredRole, router]);

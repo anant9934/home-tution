@@ -10,6 +10,7 @@ import { useEffect } from "react";
 import { fetchApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
 
 export default function LmsClient({ courseId }: { courseId: string }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -156,7 +157,9 @@ export default function LmsClient({ courseId }: { courseId: string }) {
                {!sidebarOpen && <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}><Menu className="w-5 h-5" /></Button>}
                <h2 className="font-bold text-lg font-heading">{activeLesson?.title}</h2>
             </div>
-            <Button variant="outline" className="rounded-full shadow-sm text-sm h-9">Back to Dashboard</Button>
+            <Link href="/student/dashboard">
+               <Button variant="outline" className="rounded-full shadow-sm text-sm h-9">Back to Dashboard</Button>
+            </Link>
          </header>
          
          <main className="flex-1 overflow-y-auto p-4 lg:p-8 flex justify-center">
@@ -209,10 +212,21 @@ export default function LmsClient({ courseId }: { courseId: string }) {
                  </div>
                ) : (
                  <div className="space-y-6">
-                   <div className="aspect-video bg-black rounded-3xl overflow-hidden shadow-lg relative flex items-center justify-center">
-                     <PlayCircle className="w-20 h-20 text-white/50" />
-                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                     <div className="absolute bottom-6 left-6 text-white font-bold font-heading text-2xl">{activeLesson?.title}</div>
+                   <div className="aspect-video bg-black rounded-3xl overflow-hidden shadow-lg relative flex items-center justify-center group">
+                     {activeLesson?.videoUrl ? (
+                        <video 
+                          src={activeLesson.videoUrl} 
+                          controls 
+                          className="w-full h-full object-cover" 
+                          controlsList="nodownload"
+                        />
+                     ) : (
+                        <>
+                          <PlayCircle className="w-20 h-20 text-white/50 group-hover:scale-110 transition-transform" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
+                          <div className="absolute bottom-6 left-6 text-white font-bold font-heading text-2xl pointer-events-none">{activeLesson?.title}</div>
+                        </>
+                     )}
                    </div>
                    
                    <div className="bg-white p-6 rounded-3xl border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">

@@ -142,7 +142,20 @@ export default function ProfilePage() {
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   {saving ? "Saving..." : "Save Changes"}
                 </Button>
-                <Button variant="outline" onClick={() => setIsEditing(false)} className="rounded-xl">Cancel</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Reset to last saved values
+                    setEditName(data.name || "");
+                    setEditPhone(data.phone || "");
+                    setEditOccupation(data.occupation || "");
+                    setEditAddress(data.address || "");
+                    setIsEditing(false);
+                  }}
+                  className="rounded-xl"
+                >
+                  Cancel
+                </Button>
               </div>
             </div>
           ) : (

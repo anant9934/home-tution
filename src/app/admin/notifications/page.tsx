@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { fetchApi } from "@/lib/api";
-import { Bell, Info, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Bell, Info, AlertTriangle, ShieldCheck, FileText, IndianRupee, Megaphone, Calendar } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
@@ -50,9 +50,36 @@ export default function AdminNotificationsPage() {
       <div className="bg-white border rounded-3xl overflow-hidden shadow-sm">
          <div className="divide-y">
             {notifications.map((n) => {
-               const Icon = n.type === 'ALERT' ? AlertTriangle : (n.type === 'SECURITY' ? ShieldCheck : Info);
-               const iconColorClass = n.type === 'ALERT' ? 'text-destructive bg-destructive/10' : 
-                                     (n.type === 'SECURITY' ? 'text-success bg-success/10' : 'text-primary bg-primary/10');
+               let Icon = Info;
+               let iconColorClass = 'text-primary bg-primary/10';
+               
+               switch (n.type) {
+                  case 'ASSIGNMENT':
+                  case 'QUIZ':
+                     Icon = FileText;
+                     iconColorClass = 'text-sky-500 bg-sky-500/10';
+                     break;
+                  case 'FEE':
+                     Icon = IndianRupee;
+                     iconColorClass = 'text-emerald-500 bg-emerald-500/10';
+                     break;
+                  case 'CLASS':
+                     Icon = Calendar;
+                     iconColorClass = 'text-purple-500 bg-purple-500/10';
+                     break;
+                  case 'ANNOUNCEMENT':
+                     Icon = Megaphone;
+                     iconColorClass = 'text-amber-500 bg-amber-500/10';
+                     break;
+                  case 'ALERT':
+                     Icon = AlertTriangle;
+                     iconColorClass = 'text-destructive bg-destructive/10';
+                     break;
+                  case 'SECURITY':
+                     Icon = ShieldCheck;
+                     iconColorClass = 'text-success bg-success/10';
+                     break;
+               }
                
                return (
                  <div key={n.id} className="p-6 flex items-start gap-4 hover:bg-slate-50 transition-colors">

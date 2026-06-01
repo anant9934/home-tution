@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChildSelector } from "@/components/ChildSelector";
 import { fetchApi } from "@/lib/api";
 
 interface PerformanceData {
@@ -22,18 +23,24 @@ export default function PerformancePage() {
   const [data, setData] = useState<PerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchApi("/parents/performance")
+    setLoading(true);
+    const query = selectedChildId ? `?childId=${selectedChildId}` : "";
+    fetchApi(`/parents/performance${query}`)
       .then(setData)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedChildId]);
 
   if (loading) {
     return (
       <div className="space-y-8 pb-20 lg:pb-8">
-        <Skeleton className="h-8 w-48" />
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-9 w-36 rounded-xl" />
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[1,2,3,4].map(i => <Skeleton key={i} className="h-28 rounded-2xl" />)}
         </div>
@@ -58,9 +65,12 @@ export default function PerformancePage() {
 
   return (
     <div className="space-y-8 pb-20 lg:pb-8">
-      <div>
-        <h1 className="text-3xl font-bold font-heading">Performance</h1>
-        <p className="text-muted-foreground mt-1">{data.childName}&apos;s academic performance overview.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold font-heading">Performance</h1>
+          <p className="text-muted-foreground mt-1">{data.childName}&apos;s academic performance overview.</p>
+        </div>
+        <ChildSelector selectedChildId={selectedChildId} onSelect={setSelectedChildId} />
       </div>
 
       {/* Summary Row */}

@@ -125,9 +125,11 @@ export default function StudentCoursesPage() {
               </div>
               
               <div className="p-4 border-t bg-white relative z-10">
-                 <Button className="w-full rounded-xl shadow-sm gap-2 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors" onClick={() => alert("Course viewer coming soon!")}>
-                   <PlayCircle className="w-4 h-4" /> {course.progress > 0 ? "Resume Learning" : "Start Course"}
-                 </Button>
+                 <Link href={`/student/courses/${course.id}/learn`} className="w-full block">
+                   <Button className="w-full rounded-xl shadow-sm gap-2 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors">
+                     <PlayCircle className="w-4 h-4" /> {course.progress > 0 ? "Resume Learning" : "Start Course"}
+                   </Button>
+                 </Link>
               </div>
            </div>
          ))}
