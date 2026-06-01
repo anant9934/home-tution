@@ -75,7 +75,7 @@ export class AdminService {
     });
   }
 
-  async createCourse(data: { title: string; subject: string; instructorId: string }) {
+  async createCourse(data: { title: string; subject: string; class: string; board: string; description?: string; instructorId: string }) {
     const tutorId = data.instructorId || (await this.prisma.tutorProfile.findFirst({ where: { isVerified: true } }))?.id;
     
     if (!tutorId) {
@@ -86,11 +86,90 @@ export class AdminService {
       data: {
         title: data.title,
         subject: data.subject,
-        class: "General", // Default for now
-        board: "General", // Default for now
+        class: data.class || "General",
+        board: data.board || "General",
+        description: data.description,
         createdBy: tutorId,
         isPublished: true,
       }
+    });
+  }
+
+  async updateCourse(id: string, data: { title?: string; subject?: string; class?: string; board?: string; description?: string }) {
+    return this.prisma.course.update({
+      where: { id },
+      data
+    });
+  }
+
+  async deleteCourse(id: string) {
+    return this.prisma.course.delete({
+      where: { id }
+    });
+  }
+
+  async getCourseById(id: string) {
+    return this.prisma.course.findUnique({
+      where: { id },
+      include: {
+        chapters: {
+          orderBy: { order: 'asc' },
+          include: {
+            lessons: {
+              orderBy: { order: 'asc' }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  async createChapter(courseId: string, data: { title: string; order: number }) {
+    return this.prisma.chapter.create({
+      data: {
+        courseId,
+        title: data.title,
+        order: data.order
+      }
+    });
+  }
+
+  async updateChapter(id: string, data: { title?: string; order?: number }) {
+    return this.prisma.chapter.update({
+      where: { id },
+      data
+    });
+  }
+
+  async deleteChapter(id: string) {
+    return this.prisma.chapter.delete({
+      where: { id }
+    });
+  }
+
+  async createLesson(chapterId: string, data: { title: string; videoUrl?: string; notesUrl?: string; duration: number; order: number }) {
+    return this.prisma.lesson.create({
+      data: {
+        chapterId,
+        title: data.title,
+        videoUrl: data.videoUrl,
+        notesUrl: data.notesUrl,
+        duration: data.duration,
+        order: data.order
+      }
+    });
+  }
+
+  async updateLesson(id: string, data: { title?: string; videoUrl?: string; notesUrl?: string; duration?: number; order?: number }) {
+    return this.prisma.lesson.update({
+      where: { id },
+      data
+    });
+  }
+
+  async deleteLesson(id: string) {
+    return this.prisma.lesson.delete({
+      where: { id }
     });
   }
 

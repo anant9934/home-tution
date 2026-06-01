@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Patch, Param, Post, Body, Request } from '@nestjs/common';
+import { Controller, Get, UseGuards, Patch, Param, Post, Body, Request, Delete } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -26,8 +26,53 @@ export class AdminController {
   }
 
   @Post('courses')
-  createCourse(@Body() body: { title: string; subject: string; instructorId: string }) {
+  createCourse(@Body() body: { title: string; subject: string; class: string; board: string; description?: string; instructorId: string }) {
     return this.adminService.createCourse(body);
+  }
+
+  @Patch('courses/:id')
+  updateCourse(@Param('id') id: string, @Body() body: { title?: string; subject?: string; class?: string; board?: string; description?: string }) {
+    return this.adminService.updateCourse(id, body);
+  }
+
+  @Delete('courses/:id')
+  deleteCourse(@Param('id') id: string) {
+    return this.adminService.deleteCourse(id);
+  }
+
+  @Get('courses/:id')
+  getCourseById(@Param('id') id: string) {
+    return this.adminService.getCourseById(id);
+  }
+
+  @Post('courses/:id/chapters')
+  createChapter(@Param('id') id: string, @Body() body: { title: string; order: number }) {
+    return this.adminService.createChapter(id, body);
+  }
+
+  @Patch('chapters/:id')
+  updateChapter(@Param('id') id: string, @Body() body: { title?: string; order?: number }) {
+    return this.adminService.updateChapter(id, body);
+  }
+
+  @Delete('chapters/:id')
+  deleteChapter(@Param('id') id: string) {
+    return this.adminService.deleteChapter(id);
+  }
+
+  @Post('chapters/:id/lessons')
+  createLesson(@Param('id') id: string, @Body() body: { title: string; videoUrl?: string; notesUrl?: string; duration: number; order: number }) {
+    return this.adminService.createLesson(id, body);
+  }
+
+  @Patch('lessons/:id')
+  updateLesson(@Param('id') id: string, @Body() body: { title?: string; videoUrl?: string; notesUrl?: string; duration?: number; order?: number }) {
+    return this.adminService.updateLesson(id, body);
+  }
+
+  @Delete('lessons/:id')
+  deleteLesson(@Param('id') id: string) {
+    return this.adminService.deleteLesson(id);
   }
 
   @Patch('courses/:id/publish')
