@@ -195,15 +195,20 @@ export default function AdminParentsPage() {
                   <div className="space-y-2">
                      {selectedParent.children?.length > 0 ? (
                         selectedParent.children.map((c: any) => (
-                           <div key={c.id} className="flex items-center gap-3 p-2 rounded-xl border bg-slate-50">
+                           <a 
+                             key={c.id}
+                             href={`/admin/students?profileId=${c.id}`}
+                             className="flex items-center gap-3 p-2 rounded-xl border bg-slate-50 hover:bg-primary/5 hover:border-primary/30 transition-colors group"
+                           >
                               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                                  {c.user?.name?.charAt(0) || '?'}
                               </div>
-                              <div>
+                              <div className="flex-1">
                                  <div className="text-sm font-bold">{c.user?.name || 'Unknown'}</div>
                                  <div className="text-[10px] text-muted-foreground">{c.class} • {c.board}</div>
                               </div>
-                           </div>
+                              <span className="text-xs text-primary font-semibold opacity-0 group-hover:opacity-100 transition-opacity">View Profile →</span>
+                           </a>
                         ))
                      ) : (
                         <div className="text-sm text-muted-foreground">No children linked to this parent yet.</div>

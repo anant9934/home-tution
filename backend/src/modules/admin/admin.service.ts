@@ -178,7 +178,17 @@ export class AdminService {
   async getStudents() {
     return this.prisma.studentProfile.findMany({
       include: {
-        user: { select: { name: true, email: true, status: true, createdAt: true } }
+        user: { select: { name: true, email: true, status: true, createdAt: true } },
+        parent: {
+          include: {
+            user: { select: { name: true, email: true } }
+          }
+        },
+        assignedTutor: {
+          include: {
+            user: { select: { name: true, email: true } }
+          }
+        }
       },
       orderBy: { joiningDate: 'desc' }
     });
@@ -197,7 +207,12 @@ export class AdminService {
   async getTutors() {
     return this.prisma.tutorProfile.findMany({
       include: {
-        user: { select: { name: true, email: true, status: true, createdAt: true } }
+        user: { select: { name: true, email: true, status: true, createdAt: true } },
+        studentsAssigned: {
+          include: {
+            user: { select: { name: true, email: true } }
+          }
+        }
       },
       orderBy: { user: { createdAt: 'desc' } }
     });

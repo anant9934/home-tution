@@ -216,6 +216,50 @@ export default function AdminStudentsPage() {
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Address</label>
                   <div className="font-medium mt-1">{selectedStudent.address || 'Not Provided'}</div>
                 </div>
+
+                {/* Linked Parent */}
+                <div className="col-span-2 border-t pt-4">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Linked Parent</label>
+                  {selectedStudent.parent ? (
+                    <a 
+                      href={`/admin/parents?profileId=${selectedStudent.parent.id}`}
+                      className="flex items-center gap-3 p-3 rounded-xl border bg-purple-50 hover:bg-purple-100 transition-colors group"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-purple-200 flex items-center justify-center text-sm font-bold text-purple-700">
+                        {selectedStudent.parent.user?.name?.charAt(0) || 'P'}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-bold text-slate-800">{selectedStudent.parent.user?.name}</div>
+                        <div className="text-xs text-muted-foreground">{selectedStudent.parent.user?.email}</div>
+                      </div>
+                      <span className="text-xs text-primary font-semibold opacity-0 group-hover:opacity-100 transition-opacity">View →</span>
+                    </a>
+                  ) : (
+                    <div className="text-sm text-muted-foreground p-3 rounded-xl border bg-slate-50">No parent linked yet.</div>
+                  )}
+                </div>
+
+                {/* Assigned Tutor */}
+                <div className="col-span-2 border-t pt-4">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Assigned Tutor</label>
+                  {selectedStudent.assignedTutor ? (
+                    <a 
+                      href={`/admin/tutors?profileId=${selectedStudent.assignedTutor.id}`}
+                      className="flex items-center gap-3 p-3 rounded-xl border bg-emerald-50 hover:bg-emerald-100 transition-colors group"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-emerald-200 flex items-center justify-center text-sm font-bold text-emerald-700">
+                        {selectedStudent.assignedTutor.user?.name?.charAt(0) || 'T'}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-bold text-slate-800">{selectedStudent.assignedTutor.user?.name}</div>
+                        <div className="text-xs text-muted-foreground">{selectedStudent.assignedTutor.user?.email}</div>
+                      </div>
+                      <span className="text-xs text-primary font-semibold opacity-0 group-hover:opacity-100 transition-opacity">View →</span>
+                    </a>
+                  ) : (
+                    <div className="text-sm text-muted-foreground p-3 rounded-xl border bg-slate-50">No tutor assigned yet.</div>
+                  )}
+                </div>
               </div>
             </div>
             

@@ -197,45 +197,83 @@ export default function AdminTutorsPage() {
                </Button>
              </div>
              
-             <div className="p-6 space-y-6">
-               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email Address</label>
-                   <div className="font-medium mt-1">{selectedTutor.user?.email || 'N/A'}</div>
-                 </div>
-                 <div>
-                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Verification Status</label>
-                   <div className="mt-1">
-                     <Badge variant="outline" className={selectedTutor.verificationStatus === 'VERIFIED' ? 'bg-success/10 text-success border-success/20' : selectedTutor.verificationStatus === 'PENDING' ? 'bg-warning/10 text-warning border-warning/20' : 'bg-destructive/10 text-destructive border-destructive/20'}>
-                       {selectedTutor.verificationStatus || 'UNKNOWN'}
-                     </Badge>
-                   </div>
-                 </div>
-                 
-                 <div>
-                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Qualifications</label>
-                   <div className="font-medium mt-1">{selectedTutor.qualification || 'N/A'}</div>
-                 </div>
-                 <div>
-                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Experience</label>
-                   <div className="font-medium mt-1">{selectedTutor.experienceYears || 0} Years</div>
-                 </div>
+             <div className="p-6 space-y-6 max-h-[65vh] overflow-y-auto">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email Address</label>
+                    <div className="font-medium mt-1">{selectedTutor.user?.email || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Verification Status</label>
+                    <div className="mt-1">
+                      <Badge variant="outline" className={selectedTutor.verificationStatus === 'VERIFIED' ? 'bg-success/10 text-success border-success/20' : selectedTutor.verificationStatus === 'PENDING' ? 'bg-warning/10 text-warning border-warning/20' : 'bg-destructive/10 text-destructive border-destructive/20'}>
+                        {selectedTutor.verificationStatus || 'UNKNOWN'}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Qualifications</label>
+                    <div className="font-medium mt-1">{selectedTutor.qualification || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Experience</label>
+                    <div className="font-medium mt-1">{selectedTutor.experienceYears || 0} Years</div>
+                  </div>
 
-                 <div>
-                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Hourly Rate</label>
-                   <div className="font-medium mt-1">₹{selectedTutor.hourlyRate || 0} / hr</div>
-                 </div>
-                 <div>
-                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Teaching Mode</label>
-                   <div className="font-medium mt-1">{selectedTutor.teachingMode || 'N/A'}</div>
-                 </div>
-                 
-                 <div className="col-span-2">
-                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bio / Description</label>
-                   <div className="font-medium mt-1 text-sm text-slate-700">{selectedTutor.bio || 'No bio provided'}</div>
-                 </div>
-               </div>
-             </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Hourly Rate</label>
+                    <div className="font-medium mt-1">₹{selectedTutor.hourlyRate || 0} / hr</div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Teaching Mode</label>
+                    <div className="font-medium mt-1">{selectedTutor.teachingMode || 'N/A'}</div>
+                  </div>
+                  
+                  <div className="col-span-2">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Subjects</label>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {selectedTutor.subjects?.length > 0 ? selectedTutor.subjects.map((s: string) => (
+                        <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
+                      )) : <span className="text-sm text-muted-foreground">None listed</span>}
+                    </div>
+                  </div>
+                  
+                  <div className="col-span-2">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bio / Description</label>
+                    <div className="font-medium mt-1 text-sm text-slate-700">{selectedTutor.bio || 'No bio provided'}</div>
+                  </div>
+
+                  {/* Assigned Students */}
+                  <div className="col-span-2 border-t pt-4">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
+                      Assigned Students ({selectedTutor.studentsAssigned?.length || 0})
+                    </label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {selectedTutor.studentsAssigned?.length > 0 ? (
+                        selectedTutor.studentsAssigned.map((s: any) => (
+                          <a
+                            key={s.id}
+                            href={`/admin/students?profileId=${s.id}`}
+                            className="flex items-center gap-3 p-2 rounded-xl border bg-slate-50 hover:bg-primary/5 hover:border-primary/30 transition-colors group"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                              {s.user?.name?.charAt(0) || '?'}
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-sm font-bold">{s.user?.name || 'Unknown'}</div>
+                              <div className="text-[10px] text-muted-foreground">{s.user?.email} • {s.class} {s.board}</div>
+                            </div>
+                            <span className="text-xs text-primary font-semibold opacity-0 group-hover:opacity-100 transition-opacity">View →</span>
+                          </a>
+                        ))
+                      ) : (
+                        <div className="text-sm text-muted-foreground p-3 rounded-xl border bg-slate-50">No students assigned yet.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
              
              <div className="p-4 bg-slate-50 border-t flex justify-end">
                <Button onClick={() => setSelectedTutor(null)} className="font-bold rounded-full">
