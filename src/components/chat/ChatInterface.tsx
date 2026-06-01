@@ -13,6 +13,8 @@ export default function ChatInterface({ currentUserId, currentUserRole }: { curr
   const [messageInput, setMessageInput] = useState("");
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"ALL" | "TUTOR" | "STUDENT">("ALL");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Poll for conversations
@@ -93,6 +95,13 @@ export default function ChatInterface({ currentUserId, currentUserRole }: { curr
   const activeConversation = conversations.find(c => c.id === activeConversationId);
   const activeParticipant = activeConversation?.participant;
 
+  const filteredConversations = conversations.filter(c => {
+    if (!c.participant) return false;
+    const matchesSearch = c.participant.name?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole = roleFilter === "ALL" ? true : c.participant.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
+
   return (
     <div className="bg-white rounded-3xl border shadow-sm flex h-[700px] max-h-[80vh] overflow-hidden">
       
@@ -100,19 +109,38 @@ export default function ChatInterface({ currentUserId, currentUserRole }: { curr
       <div className="w-1/3 border-r flex flex-col bg-slate-50/50">
         <div className="p-4 border-b bg-white">
           <h2 className="font-bold font-heading text-lg mb-4">Messages</h2>
-          <div className="relative">
+          <div className="relative mb-3">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search messages..." className="pl-9 rounded-full bg-slate-100 border-none" />
+            <Input 
+               placeholder="Search by name..." 
+               className="pl-9 rounded-full bg-slate-100 border-none"
+               value={searchQuery}
+               onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setRoleFilter("ALL")}
+              className={`flex-1 py-1 text-xs font-medium rounded-full transition-colors ${roleFilter === 'ALL' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >All</button>
+            <button 
+              onClick={() => setRoleFilter("TUTOR")}
+              className={`flex-1 py-1 text-xs font-medium rounded-full transition-colors ${roleFilter === 'TUTOR' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >Tutors</button>
+            <button 
+              onClick={() => setRoleFilter("STUDENT")}
+              className={`flex-1 py-1 text-xs font-medium rounded-full transition-colors ${roleFilter === 'STUDENT' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >Students</button>
           </div>
         </div>
         
         <div className="flex-1 overflow-y-auto p-2">
           {loadingConversations && conversations.length === 0 ? (
             <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
-          ) : conversations.length === 0 ? (
-            <div className="text-center p-8 text-sm text-muted-foreground">No conversations yet.</div>
+          ) : filteredConversations.length === 0 ? (
+            <div className="text-center p-8 text-sm text-muted-foreground">No matching conversations.</div>
           ) : (
-            conversations.map(c => (
+            filteredConversations.map(c => (
               <button 
                 key={c.id} 
                 onClick={() => setActiveConversationId(c.id)}
@@ -171,6 +199,7 @@ export default function ChatInterface({ currentUserId, currentUserRole }: { curr
                 <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
               ) : (
                 messages.map((m, idx) => {
+                  // currentUserId can be passed dynamically, so we must be precise
                   const isMe = m.senderId === currentUserId;
                   const showAvatar = !isMe && (idx === 0 || messages[idx-1].senderId !== m.senderId);
                   

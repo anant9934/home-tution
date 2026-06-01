@@ -17,10 +17,7 @@ export default function AdminMessagesPage() {
   const [sendingBroadcast, setSendingBroadcast] = useState(false);
 
   useEffect(() => {
-    // We can fetch the current user profile, or just use the token decoding
-    // For now, we'll fetch profile or assume an admin ID if available.
-    fetchApi("/users/profile").then(res => setCurrentUser(res)).catch(() => {
-       // fallback if /users/profile isn't available for admin
+    fetchApi("/users/me").then(res => setCurrentUser(res)).catch(() => {
        setCurrentUser({ id: 'admin-123', role: 'ADMIN' }); 
     });
   }, []);
