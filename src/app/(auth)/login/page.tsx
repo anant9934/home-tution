@@ -57,7 +57,7 @@ export default function LoginPage() {
         redirectUrl = "/student/dashboard";
       }
 
-      router.push(redirectUrl);
+      window.location.href = redirectUrl;
     } catch (error: any) {
       toast.error(error.message);
     } finally {
