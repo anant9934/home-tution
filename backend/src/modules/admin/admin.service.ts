@@ -55,7 +55,9 @@ export class AdminService {
       })),
       recentBookings: recentBookings.map(b => ({
         id: b.id,
+        studentId: b.studentId,
         student: b.student.user.name,
+        tutorId: b.tutorId,
         tutor: b.tutor.user.name,
         amount: `₹${((b.duration / 60) * b.tutor.hourlyRate).toFixed(0)}`,
         status: b.status,

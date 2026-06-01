@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchApi } from "@/lib/api";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export default function AdminDashboardPage() {
   const [data, setData] = useState<any>(null);
@@ -219,7 +220,11 @@ export default function AdminDashboardPage() {
                           {data.recentBookings.map((txn: any) => (
                              <tr key={txn.id} className="hover:bg-slate-50/50">
                                 <td className="p-4 font-mono text-xs">{txn.id}</td>
-                                <td className="p-4 font-medium">{txn.student}</td>
+                                <td className="p-4 font-medium">
+                                   <Link href={`/admin/students?profileId=${txn.studentId}`} className="hover:underline text-slate-900">
+                                      {txn.student}
+                                   </Link>
+                                </td>
                                 <td className="p-4 font-bold text-success">{txn.amount}</td>
                                 <td className="p-4 text-muted-foreground">{new Date(txn.date).toLocaleDateString()}</td>
                                 <td className="p-4">
@@ -291,7 +296,9 @@ export default function AdminDashboardPage() {
                             <GraduationCap className="w-6 h-6 text-muted-foreground" />
                          </div>
                          <div>
-                            <div className="font-bold">{tutor.name}</div>
+                            <Link href={`/admin/tutors?profileId=${tutor.id}`} className="font-bold hover:underline block">
+                               {tutor.name}
+                            </Link>
                             <div className="text-sm text-muted-foreground mt-0.5">Applied: {new Date(tutor.appliedAt).toLocaleDateString()}</div>
                          </div>
                       </div>
@@ -331,8 +338,12 @@ export default function AdminDashboardPage() {
                  {data.recentBookings.map((txn: any) => (
                    <div key={txn.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
                       <div>
-                         <div className="font-bold">{txn.student}</div>
-                         <div className="text-sm text-muted-foreground mt-0.5">Tutor: {txn.tutor}</div>
+                         <Link href={`/admin/students?profileId=${txn.studentId}`} className="font-bold hover:underline block">
+                            {txn.student}
+                         </Link>
+                         <div className="text-sm text-muted-foreground mt-0.5">
+                            Tutor: <Link href={`/admin/tutors?profileId=${txn.tutorId}`} className="hover:underline">{txn.tutor}</Link>
+                         </div>
                       </div>
                       <div className="text-right">
                          <div className="font-bold text-success">{txn.amount}</div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { fetchApi } from "@/lib/api";
+import { useSearchParams } from "next/navigation";
 import { GraduationCap, Search, MoreVertical, CheckCircle, XCircle, ShieldAlert, FileText, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function AdminTutorsPage() {
+  const searchParams = useSearchParams();
   const [tutors, setTutors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,12 +28,19 @@ export default function AdminTutorsPage() {
 
   useEffect(() => {
     loadTutors();
-  }, []);
+  }, [searchParams]);
 
   async function loadTutors() {
     try {
       const data = await fetchApi("/admin/tutors");
       setTutors(data);
+      
+      // Auto-open modal if profileId is in URL
+      const profileId = searchParams.get('profileId');
+      if (profileId) {
+        const tutor = data.find((t: any) => t.id === profileId);
+        if (tutor) setSelectedTutor(tutor);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to load tutors");
     } finally {

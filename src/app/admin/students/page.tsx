@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { fetchApi } from "@/lib/api";
+import { useSearchParams } from "next/navigation";
 import { Users, Search, MoreVertical, Ban, FileText, CheckCircle2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function AdminStudentsPage() {
+  const searchParams = useSearchParams();
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +31,13 @@ export default function AdminStudentsPage() {
       try {
         const data = await fetchApi("/admin/students");
         setStudents(data);
+        
+        // Auto-open modal if profileId is in URL
+        const profileId = searchParams.get('profileId');
+        if (profileId) {
+          const student = data.find((s: any) => s.id === profileId);
+          if (student) setSelectedStudent(student);
+        }
       } catch (err: any) {
         setError(err.message || "Failed to load students");
       } finally {
@@ -36,7 +45,7 @@ export default function AdminStudentsPage() {
       }
     }
     loadStudents();
-  }, []);
+  }, [searchParams]);
 
   const handleStatusUpdate = async (id: string, currentStatus: string) => {
     try {
