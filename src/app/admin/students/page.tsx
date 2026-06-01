@@ -122,24 +122,25 @@ export default function AdminStudentsPage() {
                           </Badge>
                        </td>
                        <td className="px-6 py-4 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger className="h-8 w-8 inline-flex items-center justify-center rounded-md text-sm font-medium hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2">
-                                <MoreVertical className="h-4 w-4" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => toast.info('Full profile view coming soon!')}>
-                                <FileText className="h-4 w-4" /> View Full Profile
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className={`gap-2 cursor-pointer ${s.user?.status === 'ACTIVE' ? 'text-destructive focus:text-destructive focus:bg-destructive/10' : 'text-success focus:text-success focus:bg-success/10'}`}
-                                onClick={() => handleStatusUpdate(s.id, s.user?.status || 'ACTIVE')}
-                              >
-                                <Ban className="h-4 w-4" /> {s.user?.status === 'ACTIVE' ? 'Suspend Account' : 'Activate Account'}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <div className="flex justify-end gap-2">
+                             <Button 
+                               variant="ghost" 
+                               size="sm"
+                               onClick={() => toast.info('Full profile view coming soon!')}
+                               className="text-slate-600 hover:bg-slate-100"
+                             >
+                               <FileText className="h-4 w-4" />
+                             </Button>
+                             <Button 
+                               variant="ghost" 
+                               size="sm"
+                               onClick={() => handleStatusUpdate(s.id, s.user?.status || 'ACTIVE')}
+                               className={`gap-1.5 ${s.user?.status === 'ACTIVE' ? 'text-destructive hover:bg-destructive/10 hover:text-destructive' : 'text-success hover:bg-success/10 hover:text-success'}`}
+                             >
+                               <Ban className="h-4 w-4" />
+                               {s.user?.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
+                             </Button>
+                          </div>
                        </td>
                     </tr>
                   ))}

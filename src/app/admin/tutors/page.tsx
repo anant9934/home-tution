@@ -128,28 +128,29 @@ export default function AdminTutorsPage() {
                           </Badge>
                        </td>
                        <td className="px-6 py-4 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger className="h-8 w-8 inline-flex items-center justify-center rounded-md text-sm font-medium hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2">
-                                <MoreVertical className="h-4 w-4" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Quick Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              
+                          <div className="flex justify-end gap-2">
                               {t.verificationStatus !== 'VERIFIED' && (
-                                <DropdownMenuItem className="gap-2 cursor-pointer text-success" onClick={() => handleStatusUpdate(t.id, 'approve')}>
-                                  <CheckCircle className="h-4 w-4" /> Approve KYC
-                                </DropdownMenuItem>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="text-success hover:text-success hover:bg-success/10 gap-1.5"
+                                  onClick={() => handleStatusUpdate(t.id, 'approve')}
+                                >
+                                  <CheckCircle className="h-4 w-4" /> Approve
+                                </Button>
                               )}
                               
                               {t.verificationStatus !== 'REJECTED' && (
-                                <DropdownMenuItem className="gap-2 cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={() => handleStatusUpdate(t.id, 'reject')}>
-                                  <XCircle className="h-4 w-4" /> Reject/Suspend
-                                </DropdownMenuItem>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5"
+                                  onClick={() => handleStatusUpdate(t.id, 'reject')}
+                                >
+                                  <XCircle className="h-4 w-4" /> Reject
+                                </Button>
                               )}
-                              
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          </div>
                        </td>
                     </tr>
                   ))}
