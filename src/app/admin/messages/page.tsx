@@ -71,7 +71,7 @@ export default function AdminMessagesPage() {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium mb-2">Target Audience</label>
-                <Select value={broadcastTarget} onValueChange={setBroadcastTarget}>
+                <Select value={broadcastTarget} onValueChange={(val) => setBroadcastTarget(val || "ALL")}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select target audience" />
                   </SelectTrigger>
