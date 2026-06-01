@@ -51,7 +51,7 @@ export class StudentsService {
     const courses = await this.prisma.course.findMany({
       where: { class: student.class, board: student.board },
       include: {
-        chapters: { include: { lessons: true } },
+        chapters: { include: { lessons: { include: { progress: { where: { studentId } } } } } },
         quizzes: {
           include: { attempts: { where: { studentId } } }
         },
@@ -63,10 +63,18 @@ export class StudentsService {
     });
 
     const enrolledCourses = courses.map(c => {
-      const totalTasks = c.quizzes.length + c.assignments.length;
+      let completedLessons = 0;
+      let totalLessons = 0;
+      c.chapters.forEach(ch => {
+        totalLessons += ch.lessons.length;
+        completedLessons += ch.lessons.filter(l => l.progress.length > 0 && l.progress[0].completed).length;
+      });
+
+      const totalTasks = c.quizzes.length + c.assignments.length + totalLessons;
       const completedTasks = 
         c.quizzes.filter(q => q.attempts.length > 0).length + 
-        c.assignments.filter(a => a.submissions.length > 0).length;
+        c.assignments.filter(a => a.submissions.length > 0).length +
+        completedLessons;
       
       const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
       
@@ -140,15 +148,22 @@ export class StudentsService {
     const courses = await this.prisma.course.findMany({
       where: { class: student.class, board: student.board },
       include: {
-        chapters: { include: { lessons: true } },
+        chapters: { include: { lessons: { include: { progress: { where: { studentId: student.id } } } } } },
         quizzes: { include: { attempts: { where: { studentId: student.id } } } },
         assignments: { include: { submissions: { where: { studentId: student.id } } } }
       }
     });
 
     return courses.map(c => {
-      const totalTasks = c.quizzes.length + c.assignments.length;
-      const completedTasks = c.quizzes.filter(q => q.attempts.length > 0).length + c.assignments.filter(a => a.submissions.length > 0).length;
+      let completedLessons = 0;
+      let totalLessons = 0;
+      c.chapters.forEach(ch => {
+        totalLessons += ch.lessons.length;
+        completedLessons += ch.lessons.filter(l => l.progress.length > 0 && l.progress[0].completed).length;
+      });
+
+      const totalTasks = c.quizzes.length + c.assignments.length + totalLessons;
+      const completedTasks = c.quizzes.filter(q => q.attempts.length > 0).length + c.assignments.filter(a => a.submissions.length > 0).length + completedLessons;
       
       return {
         id: c.id,
@@ -376,7 +391,7 @@ export class StudentsService {
     };
   }
 
-  async submitQuiz(userId: string, quizId: string, answers: Record<string, string>) {
+  async submitQuiz(userId: string, quizId: string, payload: { answers?: Record<string, string>, score?: number }) {
     const studentId = await this.getStudentId(userId);
     
     const quiz = await this.prisma.quiz.findUnique({ 
@@ -386,13 +401,16 @@ export class StudentsService {
     if (!quiz) throw new NotFoundException('Quiz not found');
 
     // Secure Score Calculation
-    let calculatedScore = 0;
-    quiz.questions.forEach(question => {
-      const studentAnswer = answers[question.id];
-      if (studentAnswer === question.correctAnswer) {
-        calculatedScore += question.marks;
-      }
-    });
+    let calculatedScore = payload.score || 0;
+    if (payload.answers) {
+      calculatedScore = 0;
+      quiz.questions.forEach(question => {
+        const studentAnswer = payload.answers![question.id];
+        if (studentAnswer === question.correctAnswer) {
+          calculatedScore += question.marks;
+        }
+      });
+    }
 
     // 1. Record Attempt
     const attempt = await this.prisma.quizAttempt.create({
