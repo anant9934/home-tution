@@ -85,6 +85,11 @@ export class AdminController {
     return this.adminService.getStudents();
   }
 
+  @Get('parents')
+  getParents() {
+    return this.adminService.getParents();
+  }
+
   @Patch('students/:id/status')
   updateStudentStatus(@Param('id') id: string, @Body() body: { status: string }) {
     return this.adminService.updateStudentStatus(id, body.status);

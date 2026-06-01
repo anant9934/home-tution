@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, LayoutDashboard, Users, UserCog, Book, CreditCard, LineChart, Settings, HelpCircle, Bell, LogOut, MessageSquare } from "lucide-react";
+import { BookOpen, LayoutDashboard, Users, UserCog, Book, CreditCard, LineChart, Settings, HelpCircle, Bell, LogOut, MessageSquare, UsersRound } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationsPopover } from "@/components/NotificationsPopover";
 import { useAuth } from "@/lib/use-auth";
@@ -13,6 +13,7 @@ const navItems = [
   { name: "Support Hub", href: "/admin/support", icon: HelpCircle },
   { name: "Students", href: "/admin/students", icon: Users },
   { name: "Tutors", href: "/admin/tutors", icon: UserCog },
+  { name: "Parents", href: "/admin/parents", icon: UsersRound },
   { name: "Courses", href: "/admin/courses", icon: Book },
   { name: "Bookings & Fees", href: "/admin/fees", icon: CreditCard },
   { name: "Messages", href: "/admin/messages", icon: MessageSquare },

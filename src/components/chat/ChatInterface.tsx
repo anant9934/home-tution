@@ -14,7 +14,7 @@ export default function ChatInterface({ currentUserId, currentUserRole }: { curr
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"ALL" | "TUTOR" | "STUDENT">("ALL");
+  const [roleFilter, setRoleFilter] = useState<"ALL" | "TUTOR" | "STUDENT" | "PARENT">("ALL");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Poll for conversations
@@ -131,6 +131,10 @@ export default function ChatInterface({ currentUserId, currentUserRole }: { curr
               onClick={() => setRoleFilter("STUDENT")}
               className={`flex-1 py-1 text-xs font-medium rounded-full transition-colors ${roleFilter === 'STUDENT' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >Students</button>
+            <button 
+              onClick={() => setRoleFilter("PARENT")}
+              className={`flex-1 py-1 text-xs font-medium rounded-full transition-colors ${roleFilter === 'PARENT' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >Parents</button>
           </div>
         </div>
         

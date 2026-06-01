@@ -76,6 +76,7 @@ export default function AdminMessagesPage() {
                     <SelectItem value="ALL">All Users (Tutors, Students, Parents)</SelectItem>
                     <SelectItem value="TUTORS">Only Tutors</SelectItem>
                     <SelectItem value="STUDENTS">Only Students</SelectItem>
+                    <SelectItem value="PARENTS">Only Parents</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

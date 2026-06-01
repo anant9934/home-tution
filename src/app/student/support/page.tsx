@@ -17,6 +17,7 @@ interface Ticket {
   description: string;
   status: string; // OPEN, IN_PROGRESS, RESOLVED, CLOSED
   priority: string; // LOW, MEDIUM, HIGH
+  remarks?: string; // Admin response
   createdAt: string;
 }
 
@@ -207,6 +208,14 @@ export default function StudentSupportPage() {
                       </div>
                     </div>
                     <p className="text-sm text-slate-600 break-words leading-relaxed whitespace-pre-wrap">{ticket.description}</p>
+                    
+                    {ticket.remarks && (
+                      <div className="mt-3 bg-primary/5 border border-primary/20 rounded-xl p-3">
+                        <div className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1">Admin Remarks</div>
+                        <p className="text-sm text-slate-800 break-words leading-relaxed">{ticket.remarks}</p>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 text-xs text-muted-foreground">
                       <span>Ticket ID: <span className="font-mono">{ticket.id.slice(0, 8)}...</span></span>
                       <span>Reported: {new Date(ticket.createdAt).toLocaleString()}</span>

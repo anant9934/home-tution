@@ -184,6 +184,16 @@ export class AdminService {
     });
   }
 
+  async getParents() {
+    return this.prisma.parentProfile.findMany({
+      include: {
+        user: { select: { name: true, email: true, status: true, createdAt: true } },
+        children: { include: { user: { select: { name: true } } } }
+      },
+      orderBy: { user: { createdAt: 'desc' } }
+    });
+  }
+
   async getTutors() {
     return this.prisma.tutorProfile.findMany({
       include: {
