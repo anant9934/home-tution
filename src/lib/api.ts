@@ -27,7 +27,7 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   // Handle 401 — clear token and redirect to login
   if (response.status === 401 && typeof window !== "undefined") {
     document.cookie = "token=; path=/; max-age=0";
-    window.location.href = "/auth/login";
+    window.location.href = "/login";
     throw new Error("Session expired. Please log in again.");
   }
 

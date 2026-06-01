@@ -73,7 +73,7 @@ export default function StudentProfilePage() {
 
   const handleLogout = () => {
     logout();
-    router.push("/auth/login");
+    router.push("/login");
   };
 
   if (loading) {

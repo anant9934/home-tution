@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     document.cookie = "token=; path=/; max-age=0";
     setUser(null);
-    window.location.href = "/auth/login";
+    window.location.href = "/login";
   };
 
   const refreshUser = async () => {
