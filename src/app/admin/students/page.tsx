@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { fetchApi } from "@/lib/api";
-import { Users, Search, MoreVertical, Ban, FileText, CheckCircle2 } from "lucide-react";
+import { Users, Search, MoreVertical, Ban, FileText, CheckCircle2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ export default function AdminStudentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
 
   useEffect(() => {
     async function loadStudents() {
@@ -126,7 +127,7 @@ export default function AdminStudentsPage() {
                              <Button 
                                variant="ghost" 
                                size="sm"
-                               onClick={() => toast.info('Full profile view coming soon!')}
+                               onClick={() => setSelectedStudent(s)}
                                className="text-slate-600 hover:bg-slate-100"
                              >
                                <FileText className="h-4 w-4" />
@@ -153,6 +154,70 @@ export default function AdminStudentsPage() {
             </table>
          </div>
       </div>
+
+      {selectedStudent && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b flex items-center justify-between bg-slate-50">
+              <h3 className="font-bold font-heading text-lg flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                  {selectedStudent.user?.name?.charAt(0) || '?'}
+                </div>
+                {selectedStudent.user?.name || 'Student Profile'}
+              </h3>
+              <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setSelectedStudent(null)}>
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email Address</label>
+                  <div className="font-medium mt-1">{selectedStudent.user?.email || 'N/A'}</div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Account Status</label>
+                  <div className="mt-1">
+                    <Badge variant="outline" className={selectedStudent.user?.status === 'ACTIVE' ? 'bg-success/10 text-success border-success/20' : 'bg-destructive/10 text-destructive border-destructive/20'}>
+                      {selectedStudent.user?.status || 'UNKNOWN'}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Class / Grade</label>
+                  <div className="font-medium mt-1">{selectedStudent.class || 'N/A'}</div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Board</label>
+                  <div className="font-medium mt-1">{selectedStudent.board || 'N/A'}</div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">School Name</label>
+                  <div className="font-medium mt-1">{selectedStudent.schoolName || 'Not Provided'}</div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Joined Date</label>
+                  <div className="font-medium mt-1">{new Date(selectedStudent.joiningDate).toLocaleDateString()}</div>
+                </div>
+                
+                <div className="col-span-2">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Address</label>
+                  <div className="font-medium mt-1">{selectedStudent.address || 'Not Provided'}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-slate-50 border-t flex justify-end">
+              <Button onClick={() => setSelectedStudent(null)} className="font-bold rounded-full">
+                Close Profile
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { fetchApi } from "@/lib/api";
-import { GraduationCap, Search, MoreVertical, CheckCircle, XCircle, ShieldAlert } from "lucide-react";
+import { GraduationCap, Search, MoreVertical, CheckCircle, XCircle, ShieldAlert, FileText, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ export default function AdminTutorsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [selectedTutor, setSelectedTutor] = useState<any>(null);
 
   useEffect(() => {
     loadTutors();
@@ -129,6 +130,14 @@ export default function AdminTutorsPage() {
                        </td>
                        <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm"
+                                 onClick={() => setSelectedTutor(t)}
+                                 className="text-slate-600 hover:bg-slate-100"
+                               >
+                                 <FileText className="h-4 w-4" />
+                               </Button>
                               {t.verificationStatus !== 'VERIFIED' && (
                                 <Button 
                                   variant="ghost" 
@@ -163,6 +172,70 @@ export default function AdminTutorsPage() {
             </table>
          </div>
       </div>
+
+      {selectedTutor && (
+         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+             <div className="p-6 border-b flex items-center justify-between bg-slate-50">
+               <h3 className="font-bold font-heading text-lg flex items-center gap-2">
+                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                   {selectedTutor.user?.name?.charAt(0) || '?'}
+                 </div>
+                 {selectedTutor.user?.name || 'Tutor Profile'}
+               </h3>
+               <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setSelectedTutor(null)}>
+                 <X className="w-5 h-5" />
+               </Button>
+             </div>
+             
+             <div className="p-6 space-y-6">
+               <div className="grid grid-cols-2 gap-4">
+                 <div>
+                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email Address</label>
+                   <div className="font-medium mt-1">{selectedTutor.user?.email || 'N/A'}</div>
+                 </div>
+                 <div>
+                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Verification Status</label>
+                   <div className="mt-1">
+                     <Badge variant="outline" className={selectedTutor.verificationStatus === 'VERIFIED' ? 'bg-success/10 text-success border-success/20' : selectedTutor.verificationStatus === 'PENDING' ? 'bg-warning/10 text-warning border-warning/20' : 'bg-destructive/10 text-destructive border-destructive/20'}>
+                       {selectedTutor.verificationStatus || 'UNKNOWN'}
+                     </Badge>
+                   </div>
+                 </div>
+                 
+                 <div>
+                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Qualifications</label>
+                   <div className="font-medium mt-1">{selectedTutor.qualification || 'N/A'}</div>
+                 </div>
+                 <div>
+                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Experience</label>
+                   <div className="font-medium mt-1">{selectedTutor.experienceYears || 0} Years</div>
+                 </div>
+
+                 <div>
+                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Hourly Rate</label>
+                   <div className="font-medium mt-1">₹{selectedTutor.hourlyRate || 0} / hr</div>
+                 </div>
+                 <div>
+                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Teaching Mode</label>
+                   <div className="font-medium mt-1">{selectedTutor.teachingMode || 'N/A'}</div>
+                 </div>
+                 
+                 <div className="col-span-2">
+                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bio / Description</label>
+                   <div className="font-medium mt-1 text-sm text-slate-700">{selectedTutor.bio || 'No bio provided'}</div>
+                 </div>
+               </div>
+             </div>
+             
+             <div className="p-4 bg-slate-50 border-t flex justify-end">
+               <Button onClick={() => setSelectedTutor(null)} className="font-bold rounded-full">
+                 Close Profile
+               </Button>
+             </div>
+           </div>
+         </div>
+       )}
     </div>
   );
 }
