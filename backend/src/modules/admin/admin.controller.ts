@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Patch, Param, Post, Body } from '@nestjs/common';
+import { Controller, Get, UseGuards, Patch, Param, Post, Body, Request } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -68,6 +68,11 @@ export class AdminController {
   @Get('notifications')
   getNotifications() {
     return this.adminService.getNotifications();
+  }
+
+  @Post('notifications')
+  sendNotification(@Body() body: { title: string, message: string, type: string, targetRole: 'ALL' | 'STUDENT' | 'TUTOR' }, @Request() req: any) {
+    return this.adminService.sendNotification(body, req.user.userId);
   }
 
   @Get('settings')

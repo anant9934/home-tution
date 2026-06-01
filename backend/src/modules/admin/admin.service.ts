@@ -196,4 +196,34 @@ export class AdminService {
       data: { isPublished }
     });
   }
+
+  async sendNotification(data: { title: string, message: string, type: string, targetRole: 'ALL' | 'STUDENT' | 'TUTOR' }, adminId: string) {
+    let users: { id: string }[] = [];
+    if (data.targetRole === 'ALL') {
+      users = await this.prisma.user.findMany({ select: { id: true } });
+    } else {
+      // Need to map frontend targetRole to backend Role enum
+      // For simplicity, we just use the string and query
+      users = await this.prisma.user.findMany({
+        where: { role: data.targetRole as any },
+        select: { id: true }
+      });
+    }
+
+    if (users.length === 0) return { success: true, count: 0 };
+
+    const notifications = users.map(u => ({
+      userId: u.id,
+      title: data.title,
+      message: data.message,
+      type: data.type,
+      isRead: false
+    }));
+
+    await this.prisma.notification.createMany({
+      data: notifications
+    });
+
+    return { success: true, count: notifications.length };
+  }
 }

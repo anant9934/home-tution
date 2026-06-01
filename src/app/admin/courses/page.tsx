@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { fetchApi } from "@/lib/api";
-import { BookOpen, Search, EyeOff, LayoutGrid } from "lucide-react";
+import { BookOpen, Search, EyeOff, LayoutGrid, Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -15,9 +15,24 @@ export default function AdminCoursesPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
+  // Modal State
+  const [showAddCourse, setShowAddCourse] = useState(false);
+  const [newCourseName, setNewCourseName] = useState("");
+  const [newCourseCategory, setNewCourseCategory] = useState("");
+  const [newCourseInstructor, setNewCourseInstructor] = useState("");
+  const [tutorsList, setTutorsList] = useState<any[]>([]);
+
   useEffect(() => {
     loadCourses();
+    loadTutors();
   }, []);
+
+  async function loadTutors() {
+    try {
+      const data = await fetchApi("/admin/tutors");
+      setTutorsList(data.filter((t: any) => t.isVerified));
+    } catch (err: any) {}
+  }
 
   async function loadCourses() {
     try {
@@ -42,6 +57,28 @@ export default function AdminCoursesPage() {
     } catch (err: any) {
       toast.error(err.message || "Failed to update course status.");
     }
+  };
+
+  const handleAddCourse = async (e: React.FormEvent) => {
+     e.preventDefault();
+     try {
+        await fetchApi("/admin/courses", {
+           method: "POST",
+           body: JSON.stringify({
+              title: newCourseName,
+              subject: newCourseCategory,
+              instructorId: newCourseInstructor
+           })
+        });
+        loadCourses();
+        setShowAddCourse(false);
+        setNewCourseName("");
+        setNewCourseCategory("");
+        setNewCourseInstructor("");
+        toast.success("New course successfully published.");
+     } catch (err: any) {
+        toast.error(err.message || "Failed to create course");
+     }
   };
 
   if (loading) {
@@ -71,16 +108,69 @@ export default function AdminCoursesPage() {
           </h1>
           <p className="text-muted-foreground mt-1">Review and manage the {courses.length} courses published by tutors.</p>
         </div>
-        <div className="relative w-full sm:w-72">
-           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-           <Input 
-             placeholder="Search titles or subjects..." 
-             className="pl-9 rounded-full bg-white shadow-sm"
-             value={search}
-             onChange={(e) => setSearch(e.target.value)}
-           />
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+           <div className="relative flex-1 sm:w-72">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input 
+                placeholder="Search titles or subjects..." 
+                className="pl-9 rounded-full bg-white shadow-sm"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+           </div>
+           <Button onClick={() => setShowAddCourse(true)} className="rounded-full font-bold shadow-sm gap-2 shrink-0">
+              <Plus className="w-4 h-4" /> Add Course
+           </Button>
         </div>
       </div>
+
+      {showAddCourse && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-6 border-b flex items-center justify-between bg-slate-50">
+                 <h3 className="font-bold font-heading text-lg">Add New Course</h3>
+                 <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setShowAddCourse(false)}>
+                    <X className="w-5 h-5" />
+                 </Button>
+              </div>
+              <form onSubmit={handleAddCourse} className="p-6 space-y-4">
+                 <div className="space-y-2">
+                    <label className="text-sm font-semibold">Course Title</label>
+                    <Input 
+                       required 
+                       placeholder="e.g. Mastering React 19" 
+                       value={newCourseName} 
+                       onChange={e => setNewCourseName(e.target.value)} 
+                    />
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-sm font-semibold">Subject Category</label>
+                    <Input 
+                       required 
+                       placeholder="e.g. Computer Science" 
+                       value={newCourseCategory}
+                       onChange={e => setNewCourseCategory(e.target.value)}
+                    />
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-sm font-semibold">Instructor</label>
+                    <select 
+                       required 
+                       value={newCourseInstructor}
+                       onChange={e => setNewCourseInstructor(e.target.value)}
+                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                       <option value="" disabled>Select an instructor...</option>
+                       {tutorsList.map(t => (
+                         <option key={t.id} value={t.id}>{t.user.name}</option>
+                       ))}
+                    </select>
+                 </div>
+                 <Button type="submit" className="w-full font-bold mt-4">Publish Course</Button>
+              </form>
+           </div>
+        </div>
+      )}
 
       <div className="bg-white border rounded-3xl overflow-hidden shadow-sm">
          <div className="overflow-x-auto">

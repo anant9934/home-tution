@@ -538,4 +538,32 @@ export class TutorsService {
       data: updateData
     });
   }
+
+  async sendNotification(userId: string, data: { title: string, message: string }) {
+    const tutor = await this.prisma.tutorProfile.findUnique({ where: { userId } });
+    if (!tutor) throw new NotFoundException('Tutor not found');
+
+    // Get all students associated with this tutor (via bookings)
+    const bookings = await this.prisma.booking.findMany({
+      where: { tutorId: tutor.id },
+      select: { student: { select: { userId: true } } },
+      distinct: ['studentId']
+    });
+
+    if (bookings.length === 0) return { success: true, count: 0 };
+
+    const notifications = bookings.map(b => ({
+      userId: b.student.userId,
+      title: data.title,
+      message: data.message,
+      type: 'ANNOUNCEMENT',
+      isRead: false
+    }));
+
+    await this.prisma.notification.createMany({
+      data: notifications
+    });
+
+    return { success: true, count: notifications.length };
+  }
 }

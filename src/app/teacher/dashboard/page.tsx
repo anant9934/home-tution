@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Clock, IndianRupee, Star, Calendar, Video, CheckCircle2, XCircle, Mic, MicOff, Camera, CameraOff, MonitorUp, Plus, X, AlertCircle } from "lucide-react";
+import { Users, Clock, IndianRupee, Star, Calendar, Video, CheckCircle2, XCircle, Mic, MicOff, Camera, CameraOff, MonitorUp, Plus, X, AlertCircle, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,11 @@ export default function TeacherDashboardPage() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [demoApprovalReq, setDemoApprovalReq] = useState<any | null>(null);
   const [demoMeetingLink, setDemoMeetingLink] = useState("");
+  
+  // Notification Modal State
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [notifTitle, setNotifTitle] = useState("");
+  const [notifMessage, setNotifMessage] = useState("");
 
   // Virtual Classroom State
   const [micOn, setMicOn] = useState(false);
@@ -110,6 +115,26 @@ export default function TeacherDashboardPage() {
         setData(dashboardData);
      } catch (err: any) {
         toast.error(err.message || "Failed to schedule class");
+     }
+  };
+
+  const handleSendNotification = async (e: React.FormEvent) => {
+     e.preventDefault();
+     try {
+        await fetchApi("/tutors/notifications", {
+           method: "POST",
+           body: JSON.stringify({
+              title: notifTitle,
+              message: notifMessage
+           })
+        });
+        
+        setShowNotificationModal(false);
+        setNotifTitle("");
+        setNotifMessage("");
+        toast.success("Announcement broadcasted successfully to all your students!");
+     } catch (err: any) {
+        toast.error(err.message || "Failed to send announcement");
      }
   };
 
@@ -261,15 +286,57 @@ export default function TeacherDashboardPage() {
         </div>
       )}
 
+      {/* NOTIFICATION MODAL */}
+      {showNotificationModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-6 border-b flex items-center justify-between bg-slate-50">
+                 <h3 className="font-bold font-heading text-lg">Send Announcement</h3>
+                 <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setShowNotificationModal(false)}>
+                    <X className="w-5 h-5" />
+                 </Button>
+              </div>
+              <form onSubmit={handleSendNotification} className="p-6 space-y-4">
+                 <div className="space-y-2">
+                    <label className="text-sm font-semibold">Title</label>
+                    <Input 
+                       required 
+                       placeholder="e.g. Next week's schedule change" 
+                       value={notifTitle} 
+                       onChange={e => setNotifTitle(e.target.value)} 
+                    />
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-sm font-semibold">Message</label>
+                    <textarea 
+                       required 
+                       placeholder="Enter announcement..." 
+                       value={notifMessage}
+                       onChange={e => setNotifMessage(e.target.value)}
+                       className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <p className="text-xs text-muted-foreground">This will be sent to all students who have booked classes with you.</p>
+                 </div>
+                 <Button type="submit" className="w-full font-bold mt-4">Broadcast</Button>
+              </form>
+           </div>
+        </div>
+      )}
+
       {/* MAIN CONTENT */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
          <div>
             <h1 className="text-3xl font-bold font-heading">Teacher Dashboard</h1>
             <p className="text-muted-foreground mt-1">Welcome back, {data.tutor.name}. Here's your overview.</p>
          </div>
-         <Button onClick={() => setShowScheduleModal(true)} className="rounded-full font-bold shadow-sm gap-2 shrink-0">
-            <Plus className="w-4 h-4" /> Schedule Extra Class
-         </Button>
+         <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Button onClick={() => setShowNotificationModal(true)} variant="outline" className="rounded-full font-bold shadow-sm gap-2 shrink-0">
+               <Megaphone className="w-4 h-4" /> Send Announcement
+            </Button>
+            <Button onClick={() => setShowScheduleModal(true)} className="rounded-full font-bold shadow-sm gap-2 shrink-0">
+               <Plus className="w-4 h-4" /> Schedule Extra Class
+            </Button>
+         </div>
       </div>
       
       {/* SUMMARY WIDGETS */}

@@ -115,6 +115,12 @@ export class TutorsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('notifications')
+  sendNotification(@Request() req: any, @Body() body: { title: string, message: string }) {
+    return this.tutorsService.sendNotification(req.user.userId, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Patch('profile')
   updateProfile(@Request() req: any, @Body() body: any) {
     return this.tutorsService.updateProfile(req.user.userId, body);
