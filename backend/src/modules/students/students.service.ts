@@ -70,10 +70,9 @@ export class StudentsService {
         completedLessons += ch.lessons.filter(l => l.progress.length > 0 && l.progress[0].completed).length;
       });
 
-      const totalTasks = c.quizzes.length + c.assignments.length + totalLessons;
+      const totalTasks = c.quizzes.length + totalLessons;
       const completedTasks = 
         c.quizzes.filter(q => q.attempts.length > 0).length + 
-        c.assignments.filter(a => a.submissions.length > 0).length +
         completedLessons;
       
       const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -162,8 +161,8 @@ export class StudentsService {
         completedLessons += ch.lessons.filter(l => l.progress.length > 0 && l.progress[0].completed).length;
       });
 
-      const totalTasks = c.quizzes.length + c.assignments.length + totalLessons;
-      const completedTasks = c.quizzes.filter(q => q.attempts.length > 0).length + c.assignments.filter(a => a.submissions.length > 0).length + completedLessons;
+      const totalTasks = c.quizzes.length + totalLessons;
+      const completedTasks = c.quizzes.filter(q => q.attempts.length > 0).length + completedLessons;
       
       return {
         id: c.id,
