@@ -65,8 +65,8 @@ export default function AdminStudentsPage() {
   }
 
   const filteredStudents = students.filter(s => 
-    s.user.name.toLowerCase().includes(search.toLowerCase()) || 
-    s.user.email.toLowerCase().includes(search.toLowerCase())
+    s.user?.name?.toLowerCase().includes(search.toLowerCase()) || 
+    s.user?.email?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -105,8 +105,8 @@ export default function AdminStudentsPage() {
                   {filteredStudents.map((s) => (
                     <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
                        <td className="px-6 py-4">
-                          <div className="font-bold text-base">{s.user.name}</div>
-                          <div className="text-xs text-muted-foreground">{s.user.email}</div>
+                          <div className="font-bold text-base">{s.user?.name || 'Unknown'}</div>
+                          <div className="text-xs text-muted-foreground">{s.user?.email || 'No email'}</div>
                           {s.phone && <div className="text-xs text-muted-foreground">{s.phone}</div>}
                        </td>
                        <td className="px-6 py-4">
@@ -117,8 +117,8 @@ export default function AdminStudentsPage() {
                           <div className="font-medium">{new Date(s.joiningDate).toLocaleDateString()}</div>
                        </td>
                        <td className="px-6 py-4">
-                          <Badge variant="outline" className={s.user.status === 'ACTIVE' ? 'bg-success/10 text-success border-success/20' : 'bg-destructive/10 text-destructive border-destructive/20'}>
-                             {s.user.status || 'ACTIVE'}
+                          <Badge variant="outline" className={s.user?.status === 'ACTIVE' ? 'bg-success/10 text-success border-success/20' : 'bg-destructive/10 text-destructive border-destructive/20'}>
+                             {s.user?.status || 'ACTIVE'}
                           </Badge>
                        </td>
                        <td className="px-6 py-4 text-right">
@@ -133,10 +133,10 @@ export default function AdminStudentsPage() {
                                 <FileText className="h-4 w-4" /> View Full Profile
                               </DropdownMenuItem>
                               <DropdownMenuItem 
-                                className={`gap-2 cursor-pointer ${s.user.status === 'ACTIVE' ? 'text-destructive focus:text-destructive focus:bg-destructive/10' : 'text-success focus:text-success focus:bg-success/10'}`}
-                                onClick={() => handleStatusUpdate(s.id, s.user.status)}
+                                className={`gap-2 cursor-pointer ${s.user?.status === 'ACTIVE' ? 'text-destructive focus:text-destructive focus:bg-destructive/10' : 'text-success focus:text-success focus:bg-success/10'}`}
+                                onClick={() => handleStatusUpdate(s.id, s.user?.status || 'ACTIVE')}
                               >
-                                <Ban className="h-4 w-4" /> {s.user.status === 'ACTIVE' ? 'Suspend Account' : 'Activate Account'}
+                                <Ban className="h-4 w-4" /> {s.user?.status === 'ACTIVE' ? 'Suspend Account' : 'Activate Account'}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

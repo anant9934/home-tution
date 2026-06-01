@@ -35,6 +35,7 @@ interface SupportTicket {
   description: string;
   status: string; // OPEN, IN_PROGRESS, RESOLVED, CLOSED
   priority: string; // LOW, MEDIUM, HIGH
+  remarks?: string;
   createdAt: string;
   user: UserDetails;
 }
@@ -46,6 +47,7 @@ export default function AdminSupportPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [priorityFilter, setPriorityFilter] = useState("ALL");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [remarksInput, setRemarksInput] = useState<{ [key: string]: string }>({});
 
   const loadTickets = async () => {
     setLoading(true);
@@ -68,12 +70,17 @@ export default function AdminSupportPage() {
     try {
       await fetchApi(`/support/admin/tickets/${ticketId}/status`, {
         method: "PATCH",
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: newStatus, remarks: remarksInput[ticketId] }),
       });
       setTickets((prev) =>
-        prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t))
+        prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus, remarks: remarksInput[ticketId] !== undefined ? remarksInput[ticketId] : t.remarks } : t))
       );
       toast.success("Ticket status updated successfully.");
+      setRemarksInput((prev) => {
+         const newRemarks = { ...prev };
+         delete newRemarks[ticketId];
+         return newRemarks;
+      });
     } catch (err: any) {
       toast.error(err.message || "Failed to update ticket status");
     } finally {
@@ -237,7 +244,13 @@ export default function AdminSupportPage() {
                     <p className="text-sm text-slate-600 break-words leading-relaxed whitespace-pre-wrap">
                       {ticket.description}
                     </p>
-                    <div className="text-[10px] text-muted-foreground font-mono">
+                    {ticket.remarks && (
+                      <div className="bg-slate-100 p-3 rounded-xl border mt-2">
+                         <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Admin Remarks</span>
+                         <p className="text-sm text-slate-800">{ticket.remarks}</p>
+                      </div>
+                    )}
+                    <div className="text-[10px] text-muted-foreground font-mono mt-2">
                       Ticket ID: {ticket.id}
                     </div>
                   </div>
@@ -245,7 +258,13 @@ export default function AdminSupportPage() {
                   {/* Action Buttons */}
                   <div className="lg:col-span-4 lg:border-l lg:pl-6 space-y-3 shrink-0">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Update Ticket Status</label>
-                    <div className="flex flex-wrap gap-2 lg:grid lg:grid-cols-2">
+                    <textarea
+                      placeholder="Add remarks before updating status..."
+                      value={remarksInput[ticket.id] || ""}
+                      onChange={(e) => setRemarksInput({ ...remarksInput, [ticket.id]: e.target.value })}
+                      className="w-full text-sm rounded-xl border-slate-200 p-2 min-h-[60px] focus:outline-none focus:ring-1 focus:ring-primary bg-white"
+                    />
+                    <div className="flex flex-wrap gap-2 lg:grid lg:grid-cols-2 mt-2">
                       {[
                         { label: "Open", value: "OPEN", color: "bg-sky-50 text-sky-600 border-sky-200 hover:bg-sky-100" },
                         { label: "In Progress", value: "IN_PROGRESS", color: "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100" },

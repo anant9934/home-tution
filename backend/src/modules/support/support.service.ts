@@ -35,13 +35,18 @@ export class SupportService {
     });
   }
 
-  async updateTicketStatus(ticketId: string, status: string) {
+  async updateTicketStatus(ticketId: string, status: string, remarks?: string) {
     const ticket = await this.prisma.supportTicket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
+    const updateData: any = { status };
+    if (remarks !== undefined) {
+       updateData.remarks = remarks;
+    }
+
     return this.prisma.supportTicket.update({
       where: { id: ticketId },
-      data: { status },
+      data: updateData,
     });
   }
 }

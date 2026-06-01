@@ -32,10 +32,10 @@ export class SupportController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('admin/tickets/:id/status')
-  updateTicketStatus(@Req() req: any, @Param('id') id: string, @Body() body: { status: string }) {
+  updateTicketStatus(@Req() req: any, @Param('id') id: string, @Body() body: { status: string, remarks?: string }) {
     if (req.user.role !== 'ADMIN' && req.user.role !== 'SUPER_ADMIN') {
       throw new Error('Unauthorized');
     }
-    return this.supportService.updateTicketStatus(id, body.status);
+    return this.supportService.updateTicketStatus(id, body.status, body.remarks);
   }
 }

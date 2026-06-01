@@ -62,8 +62,8 @@ export default function AdminTutorsPage() {
   }
 
   const filteredTutors = tutors.filter(t => 
-    t.user.name.toLowerCase().includes(search.toLowerCase()) || 
-    t.user.email.toLowerCase().includes(search.toLowerCase())
+    t.user?.name?.toLowerCase().includes(search.toLowerCase()) || 
+    t.user?.email?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -103,10 +103,10 @@ export default function AdminTutorsPage() {
                     <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
                        <td className="px-6 py-4">
                           <div className="font-bold text-base flex items-center gap-1.5">
-                             {t.user.name} 
+                             {t.user?.name || 'Unknown'} 
                              {t.isVerified && <CheckCircle className="w-3.5 h-3.5 text-success" />}
                           </div>
-                          <div className="text-xs text-muted-foreground">{t.user.email}</div>
+                          <div className="text-xs text-muted-foreground">{t.user?.email || 'No email'}</div>
                        </td>
                        <td className="px-6 py-4">
                           <div className="font-medium truncate max-w-[150px]">{t.qualification || 'N/A'}</div>
