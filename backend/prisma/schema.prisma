@@ -236,8 +236,10 @@ model Assignment {
   id            String   @id @default(uuid())
   title         String
   description   String?
-  courseId      String
-  course        Course   @relation(fields: [courseId], references: [id])
+  courseId      String?
+  course        Course?   @relation(fields: [courseId], references: [id])
+  studentId     String?
+  student       StudentProfile? @relation(fields: [studentId], references: [id])
   createdBy     String
   deadline      DateTime
   maxMarks      Int
@@ -261,8 +263,10 @@ model Submission {
 model Quiz {
   id         String    @id @default(uuid())
   title      String
-  courseId   String
-  course     Course    @relation(fields: [courseId], references: [id])
+  courseId   String?
+  course     Course?   @relation(fields: [courseId], references: [id])
+  studentId  String?
+  student    StudentProfile? @relation(fields: [studentId], references: [id])
   duration   Int // in minutes
   totalMarks Int
   createdBy  String

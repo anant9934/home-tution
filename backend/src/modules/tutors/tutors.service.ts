@@ -331,7 +331,7 @@ export class TutorsService {
       data: {
         title: data.title,
         description: data.description,
-        courseId: data.courseId,
+        studentId: data.studentId, // Support for direct student assignment
         createdBy: tutor.id,
         deadline: new Date(data.deadline),
         maxMarks: Number(data.maxMarks),
@@ -375,7 +375,7 @@ export class TutorsService {
     return this.prisma.quiz.create({
       data: {
         title: data.title,
-        courseId: data.courseId,
+        studentId: data.studentId, // Support for direct student assignment
         duration: Number(data.duration),
         totalMarks: Number(data.totalMarks),
         createdBy: tutor.id,
