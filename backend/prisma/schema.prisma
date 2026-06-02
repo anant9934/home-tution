@@ -81,6 +81,8 @@ model StudentProfile {
   fees             Fee[]
   reviewsGiven     Review[]
   lessonProgress   LessonProgress[]
+  assignments      Assignment[]
+  quizzes          Quiz[]
 }
 
 model ParentProfile {
