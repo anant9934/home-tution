@@ -94,7 +94,10 @@ export class StudentsService {
     // 4. Pending Tasks
     const allAssignments = await this.prisma.assignment.findMany({
       where: { 
-        course: { class: student.class, board: student.board },
+        OR: [
+          { course: { class: student.class, board: student.board } },
+          { studentId: student.id }
+        ],
         submissions: { none: { studentId } }
       },
       include: { course: true },
@@ -103,7 +106,10 @@ export class StudentsService {
 
     const allQuizzes = await this.prisma.quiz.findMany({
       where: { 
-        course: { class: student.class, board: student.board },
+        OR: [
+          { course: { class: student.class, board: student.board } },
+          { studentId: student.id }
+        ],
         attempts: { none: { studentId } }
       },
       include: { course: true },
@@ -115,14 +121,14 @@ export class StudentsService {
         id: a.id,
         title: a.title,
         type: 'Assignment',
-        subject: a.course.subject,
+        subject: a.course?.subject || 'Direct Assignment',
         due: a.deadline.toISOString().split('T')[0]
       })),
       ...allQuizzes.map(q => ({
         id: q.id,
         title: q.title,
         type: 'Quiz',
-        subject: q.course.subject,
+        subject: q.course?.subject || 'Direct Quiz',
         due: 'No Deadline'
       }))
     ];
@@ -303,7 +309,10 @@ export class StudentsService {
 
     const pending = await this.prisma.assignment.findMany({
       where: { 
-        course: { class: student.class, board: student.board },
+        OR: [
+          { course: { class: student.class, board: student.board } },
+          { studentId: student.id }
+        ],
         submissions: { none: { studentId: student.id } }
       },
       include: { course: true },
@@ -320,14 +329,14 @@ export class StudentsService {
       pending: pending.map(a => ({
         id: a.id,
         title: a.title,
-        subject: a.course.subject,
+        subject: a.course?.subject || 'Direct Assignment',
         dueDate: a.deadline.toISOString().split('T')[0],
         marks: a.maxMarks
       })),
       submitted: submitted.map(s => ({
         id: s.id,
         title: s.assignment.title,
-        subject: s.assignment.course.subject,
+        subject: s.assignment.course?.subject || 'Direct Assignment',
         submittedAt: s.submittedAt.toISOString().split('T')[0],
         score: s.marks ? `${s.marks}/${s.assignment.maxMarks}` : 'Pending Grading',
         status: s.marks ? 'Graded' : 'Submitted'
@@ -369,7 +378,10 @@ export class StudentsService {
 
     const pending = await this.prisma.quiz.findMany({
       where: { 
-        course: { class: student.class, board: student.board },
+        OR: [
+          { course: { class: student.class, board: student.board } },
+          { studentId: student.id }
+        ],
         attempts: { none: { studentId: student.id } }
       },
       include: { course: true, questions: true },
@@ -385,7 +397,7 @@ export class StudentsService {
       pending: pending.map(q => ({
         id: q.id,
         title: q.title,
-        subject: q.course.subject,
+        subject: q.course?.subject || 'Direct Quiz',
         duration: q.duration,
         questions: q.questions.map(qst => ({
           id: qst.id,
@@ -397,9 +409,11 @@ export class StudentsService {
       completed: completed.map(c => ({
         id: c.id,
         title: c.quiz.title,
-        subject: c.quiz.course.subject,
-        score: `${c.score}/${c.quiz.totalMarks}`,
-        date: c.submittedAt?.toISOString().split('T')[0] || c.startedAt.toISOString().split('T')[0]
+        subject: c.quiz.course?.subject || 'Direct Quiz',
+        score: c.score,
+        totalMarks: c.quiz.totalMarks,
+        submittedAt: c.submittedAt ? c.submittedAt.toISOString().split('T')[0] : 'Unknown Date',
+        timeTaken: c.timeTaken
       }))
     };
   }

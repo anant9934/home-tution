@@ -126,7 +126,10 @@ export class ParentsService {
       where: {
         deadline: { gte: new Date() },
         submissions: { none: { studentId: child.id } },
-        course: { class: child.class },
+        OR: [
+          { course: { class: child.class } },
+          { studentId: child.id }
+        ]
       },
       include: { course: true },
       take: 3,
@@ -135,7 +138,7 @@ export class ParentsService {
     const homework = [
       ...submissions.map((s) => ({
         title: s.assignment.title,
-        subject: s.assignment.course?.subject || 'General',
+        subject: s.assignment.course?.subject || 'Direct Assignment',
         status: 'Submitted',
         isWarning: false,
         marks: s.marks,
@@ -143,7 +146,7 @@ export class ParentsService {
       })),
       ...pendingAssignments.map((a) => ({
         title: a.title,
-        subject: a.course?.subject || 'General',
+        subject: a.course?.subject || 'Direct Assignment',
         status: 'Pending',
         isWarning: true,
         marks: null,
@@ -198,12 +201,12 @@ export class ParentsService {
 
     const feedback = gradedSubmissionsWithCourse.length > 0
       ? gradedSubmissionsWithCourse.map((s) => {
-          const tutorId = s.assignment.course?.createdBy;
+          const tutorId = s.assignment.course?.createdBy || s.assignment.createdBy;
           const tutorInfo = tutorId ? tutorUserMap[tutorId] : null;
           return {
             tutorUserId: tutorInfo?.userId || null,
             tutorName: tutorInfo?.name || 'Teacher',
-            subject: s.assignment.course?.subject || 'General',
+            subject: s.assignment.course?.subject || 'Direct Assignment',
             date: s.submittedAt.toISOString(),
             note: s.feedback!,
           };
@@ -451,7 +454,7 @@ export class ParentsService {
       assignmentHistory: submissions.slice(0, 10).map((s) => ({
         id: s.id,
         title: s.assignment.title,
-        subject: s.assignment.course?.subject || 'General',
+        subject: s.assignment.course?.subject || 'Direct Assignment',
         marks: s.marks,
         maxMarks: s.assignment.maxMarks,
         percentage: s.marks != null ? Math.round((s.marks / s.assignment.maxMarks) * 100) : null,
