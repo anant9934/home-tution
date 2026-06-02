@@ -35,6 +35,11 @@ export class StudentsService {
           orderBy: { scheduledAt: 'asc' },
           take: 3,
           include: { tutor: { include: { user: true } } }
+        },
+        assignedTutor: {
+          include: {
+            user: { select: { name: true, email: true } }
+          }
         }
       }
     });
@@ -135,7 +140,16 @@ export class StudentsService {
         tutor: b.tutor.user.name,
         meetingLink: b.meetingLink
       })),
-      recentAchievements: student.badges.map(b => b.badge.name)
+      recentAchievements: student.badges.map(b => b.badge.name),
+      assignedTutor: student.assignedTutor ? {
+        id: student.assignedTutor.id,
+        name: student.assignedTutor.user.name,
+        email: student.assignedTutor.user.email,
+        subjects: student.assignedTutor.subjects,
+        hourlyRate: student.assignedTutor.hourlyRate,
+        rating: student.assignedTutor.rating,
+        teachingMode: student.assignedTutor.teachingMode,
+      } : null
     };
   }
 

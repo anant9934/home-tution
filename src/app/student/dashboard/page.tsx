@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { BookOpen, PlayCircle, Clock, Trophy, Flame, CheckCircle2, Video, X, Mic, MicOff, Camera, CameraOff, MonitorUp, FileText, ChevronRight, Loader2, AlertCircle } from "lucide-react";
+import { BookOpen, PlayCircle, Clock, Trophy, Flame, CheckCircle2, Video, X, Mic, MicOff, Camera, CameraOff, MonitorUp, FileText, ChevronRight, Loader2, AlertCircle, UserSearch, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -227,6 +227,58 @@ export default function StudentDashboardPage() {
          {/* RIGHT COLUMN: SCHEDULE & ACHIEVEMENTS */}
          <div className="space-y-8">
             
+             {/* MY TUTOR CARD */}
+             <div className="bg-white rounded-3xl border shadow-sm overflow-hidden">
+               <div className="bg-gradient-to-r from-primary/10 to-violet-500/10 p-4 flex items-center justify-between">
+                 <h3 className="font-bold font-heading flex items-center gap-2">
+                   <UserSearch className="w-5 h-5 text-primary" /> My Tutor
+                 </h3>
+               </div>
+               {data.assignedTutor ? (
+                 <div className="p-5 space-y-3">
+                   <div className="flex items-center gap-3">
+                     <div className="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center text-xl font-bold text-primary shrink-0">
+                       {data.assignedTutor.name?.charAt(0)}
+                     </div>
+                     <div>
+                       <div className="font-bold text-slate-900">{data.assignedTutor.name}</div>
+                       <div className="flex items-center gap-1 mt-0.5">
+                         <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                         <span className="text-xs font-semibold">{data.assignedTutor.rating?.toFixed(1) || 'New'}</span>
+                       </div>
+                     </div>
+                   </div>
+                   <div className="flex flex-wrap gap-1">
+                     {(data.assignedTutor.subjects || []).slice(0,3).map((s: string) => (
+                       <Badge key={s} variant="secondary" className="text-[10px] rounded-full">{s}</Badge>
+                     ))}
+                   </div>
+                   <div className="flex items-center justify-between pt-2 border-t">
+                     <span className="text-xs text-muted-foreground">{data.assignedTutor.teachingMode} mode</span>
+                     <span className="text-sm font-bold text-primary">₹{data.assignedTutor.hourlyRate}/hr</span>
+                   </div>
+                   <Link href="/student/book-tutor">
+                     <button className="w-full text-xs font-semibold text-primary border border-primary/30 hover:bg-primary/5 py-2 rounded-xl transition-colors">
+                       Change Tutor
+                     </button>
+                   </Link>
+                 </div>
+               ) : (
+                 <div className="p-5 text-center">
+                   <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                     <UserSearch className="w-7 h-7 text-primary" />
+                   </div>
+                   <p className="text-sm font-semibold text-slate-700">No tutor assigned yet</p>
+                   <p className="text-xs text-muted-foreground mt-1 mb-3">Book a tutor to get started with personalised learning.</p>
+                   <Link href="/student/book-tutor">
+                     <button className="w-full bg-primary text-white font-bold text-xs py-2.5 rounded-xl hover:bg-primary/90 transition-colors">
+                       Find a Tutor
+                     </button>
+                   </Link>
+                 </div>
+               )}
+             </div>
+
             {/* UPCOMING CLASSES */}
             <div className="bg-white rounded-3xl border shadow-sm p-6">
                <h3 className="font-bold font-heading mb-4 flex items-center gap-2">

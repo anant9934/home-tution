@@ -106,6 +106,102 @@ export class BookingsService {
     });
   }
 
+  // ─── CREATE MONTHLY PLAN BOOKING ─────────────────────────────────────────
+
+  async createMonthlyBooking(
+    studentUserId: string,
+    data: { tutorId: string; hoursPerMonth: number; startDate: string },
+  ) {
+    const studentProfile = await this.prisma.studentProfile.findUnique({
+      where: { userId: studentUserId },
+    });
+    if (!studentProfile) throw new ForbiddenException('Student profile not found');
+
+    const tutorProfile = await this.prisma.tutorProfile.findUnique({
+      where: { id: data.tutorId },
+      include: { user: { select: { name: true } } },
+    });
+    if (!tutorProfile) throw new NotFoundException('Tutor not found');
+
+    const totalAmount = data.hoursPerMonth * tutorProfile.hourlyRate;
+    const durationMinutes = data.hoursPerMonth * 60;
+
+    const booking = await this.prisma.booking.create({
+      data: {
+        studentId: studentProfile.id,
+        tutorId: data.tutorId,
+        bookingType: 'MONTHLY_PLAN',
+        scheduledAt: new Date(data.startDate),
+        duration: durationMinutes,
+        status: 'PENDING',
+        paymentStatus: 'PENDING',
+      },
+    });
+
+    return {
+      bookingId: booking.id,
+      amount: totalAmount,
+      currency: 'INR',
+      tutorName: tutorProfile.user.name,
+      hoursPerMonth: data.hoursPerMonth,
+      hourlyRate: tutorProfile.hourlyRate,
+    };
+  }
+
+  // ─── CONFIRM PAYMENT & AUTO-ASSIGN TUTOR ─────────────────────────────────
+
+  async confirmBookingAfterPayment(
+    bookingId: string,
+    studentUserId: string,
+    paymentId?: string,
+  ) {
+    const booking = await this.getBookingById(bookingId);
+    const studentProfile = await this.prisma.studentProfile.findUnique({
+      where: { userId: studentUserId },
+    });
+    if (!studentProfile) throw new ForbiddenException('Student profile not found');
+    if (booking.studentId !== studentProfile.id) {
+      throw new ForbiddenException('This booking does not belong to you');
+    }
+
+    // 1. Mark booking as CONFIRMED + PAID
+    await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: 'CONFIRMED',
+        paymentStatus: 'PAID',
+      },
+    });
+
+    // 2. Auto-assign tutor to student profile (replaces existing)
+    await this.prisma.studentProfile.update({
+      where: { id: studentProfile.id },
+      data: { assignedTutorId: booking.tutorId },
+    });
+
+    // 3. Create a Fee record for this month's plan
+    const now = new Date();
+    const totalAmount = (booking.duration / 60) * booking.tutor.hourlyRate;
+    await this.prisma.fee.create({
+      data: {
+        studentId: studentProfile.id,
+        amount: totalAmount,
+        dueDate: new Date(booking.scheduledAt),
+        status: 'PAID',
+        month: now.getMonth() + 1,
+        year: now.getFullYear(),
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Payment confirmed! Your tutor has been assigned.',
+      bookingId,
+      tutorId: booking.tutorId,
+      tutorName: booking.tutor.user.name,
+    };
+  }
+
   // ─── GET BOOKING BY ID ────────────────────────────────────────────────────
 
   async getBookingById(id: string) {
@@ -201,7 +297,6 @@ export class BookingsService {
       throw new ForbiddenException('Only the assigned tutor can end the session');
     }
 
-    // Sequential updates (Neon HTTP doesn't support parallel transactions)
     const session = await this.prisma.classSession.update({
       where: { bookingId },
       data: {
@@ -242,3 +337,4 @@ export class BookingsService {
     return { data: bookings, total, page, limit };
   }
 }
+

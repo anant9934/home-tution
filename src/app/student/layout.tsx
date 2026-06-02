@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, LayoutDashboard, Book, ClipboardList, PenTool, Trophy, CalendarCheck, MessageSquare, User, Bell, HelpCircle } from "lucide-react";
+import { BookOpen, LayoutDashboard, Book, ClipboardList, PenTool, Trophy, CalendarCheck, MessageSquare, User, Bell, HelpCircle, UserSearch } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationsPopover } from "@/components/NotificationsPopover";
 import { useAuth } from "@/lib/use-auth";
 
 const navItems = [
   { name: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
+  { name: "Book Tutor", href: "/student/book-tutor", icon: UserSearch },
   { name: "Courses", href: "/student/courses", icon: Book },
   { name: "Assignments", href: "/student/assignments", icon: ClipboardList },
   { name: "Quizzes", href: "/student/quizzes", icon: PenTool },

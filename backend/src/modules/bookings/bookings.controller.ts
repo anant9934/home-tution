@@ -20,6 +20,26 @@ import { Roles } from '../auth/decorators/roles.decorator';
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
+  // ─── STUDENT: create a monthly plan booking ──────────────────────────────
+  @Post('monthly')
+  @Roles('STUDENT' as any)
+  @UseGuards(RolesGuard)
+  createMonthly(@Request() req: any, @Body() body: { tutorId: string; hoursPerMonth: number; startDate: string }) {
+    return this.bookingsService.createMonthlyBooking(req.user.userId, body);
+  }
+
+  // ─── STUDENT: confirm payment & auto-assign tutor ─────────────────────────
+  @Post(':id/confirm-payment')
+  @Roles('STUDENT' as any)
+  @UseGuards(RolesGuard)
+  confirmPayment(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Body() body: { paymentId?: string }
+  ) {
+    return this.bookingsService.confirmBookingAfterPayment(id, req.user.userId, body.paymentId);
+  }
+
   // ─── STUDENT: create a booking ────────────────────────────────────────────
   @Post()
   @Roles('STUDENT' as any)
