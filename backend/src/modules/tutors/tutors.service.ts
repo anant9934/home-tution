@@ -96,45 +96,57 @@ export class TutorsService {
     const tutors = await this.prisma.tutorProfile.findMany({
       where: { verificationStatus: 'VERIFIED' },
       include: {
-        user: { select: { name: true } },
+        user: { select: { name: true, avatarUrl: true } },
+        studentsAssigned: { select: { id: true } },
       }
     });
 
     return tutors.map(t => ({
       id: t.id,
-      name: t.user.name,
-      subjects: t.subjects.length > 0 ? t.subjects : ['General'],
-      qualification: t.qualification,
-      experience: `${t.experienceYears} years`,
-      hourlyRate: `₹${t.hourlyRate}`,
-      rating: 4.8,
-      reviews: 124,
-      image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.user.name.replace(' ', '')}`,
-      isVerified: t.verificationStatus === 'VERIFIED'
+      user: {
+        name: t.user.name,
+        avatarUrl: t.user.avatarUrl,
+      },
+      subjects: t.subjects.length > 0 ? t.subjects : [],
+      qualification: t.qualification || null,
+      experienceYears: t.experienceYears || 0,
+      hourlyRate: t.hourlyRate || 0,
+      rating: t.rating || null,
+      totalReviews: t.totalReviews || 0,
+      bio: t.bio || null,
+      teachingMode: t.teachingMode || 'BOTH',
+      isVerified: true,
+      totalStudents: t.studentsAssigned.length,
     }));
   }
 
   async getPublicTutorDetails(tutorId: string) {
     const tutor = await this.prisma.tutorProfile.findUnique({
       where: { id: tutorId },
-      include: { user: { select: { name: true } } }
+      include: {
+        user: { select: { name: true, avatarUrl: true, email: true } },
+        studentsAssigned: { select: { id: true } },
+      }
     });
 
     if (!tutor) throw new NotFoundException('Tutor not found');
 
     return {
       id: tutor.id,
-      name: tutor.user.name,
-      subjects: tutor.subjects.length > 0 ? tutor.subjects : ['General'],
-      qualification: tutor.qualification,
-      experience: `${tutor.experienceYears} years`,
-      hourlyRate: tutor.hourlyRate,
-      rating: 4.8,
-      reviews: 124,
-      image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${tutor.user.name.replace(' ', '')}`,
-      isVerified: tutor.verificationStatus === 'VERIFIED',
-      location: 'Remote',
-      about: tutor.bio || `I am an experienced educator passionate about teaching. I focus on building strong fundamentals and helping students achieve their academic goals.`,
+      user: {
+        name: tutor.user.name,
+        avatarUrl: tutor.user.avatarUrl,
+      },
+      subjects: tutor.subjects.length > 0 ? tutor.subjects : [],
+      qualification: tutor.qualification || null,
+      experienceYears: tutor.experienceYears || 0,
+      hourlyRate: tutor.hourlyRate || 0,
+      rating: tutor.rating || null,
+      totalReviews: tutor.totalReviews || 0,
+      bio: tutor.bio || null,
+      teachingMode: tutor.teachingMode || 'BOTH',
+      isVerified: true,
+      totalStudents: tutor.studentsAssigned.length,
     };
   }
 
