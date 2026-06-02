@@ -394,15 +394,19 @@ export class TutorsService {
     // Delete existing questions for this quiz to replace them, or just insert new ones
     await this.prisma.question.deleteMany({ where: { quizId } });
 
-    return this.prisma.question.createMany({
-      data: questions.map(q => ({
-        quizId,
-        questionText: q.questionText,
-        options: q.options, // Should be an array of strings like ["A", "B", "C", "D"]
-        correctAnswer: String(q.correctAnswer),
-        marks: Number(q.marks || 1)
-      }))
-    });
+    const created: any[] = [];
+    for (const q of questions) {
+      created.push(await this.prisma.question.create({
+        data: {
+          quizId,
+          questionText: q.questionText,
+          options: q.options,
+          correctAnswer: String(q.correctAnswer),
+          marks: Number(q.marks || 1)
+        }
+      }));
+    }
+    return created;
   }
 
   async getAttendance(userId: string) {
