@@ -363,6 +363,7 @@ export class TutorsService {
       include: {
         course: { select: { title: true } },
         attempts: { include: { student: { include: { user: true } } } },
+        assignments: { include: { student: { include: { user: true } } } },
         questions: { select: { id: true, questionText: true, options: true, correctAnswer: true, marks: true } }
       }
     });
@@ -372,15 +373,81 @@ export class TutorsService {
     const tutor = await this.prisma.tutorProfile.findUnique({ where: { userId } });
     if (!tutor) throw new NotFoundException('Tutor not found');
 
-    return this.prisma.quiz.create({
+    const quiz = await this.prisma.quiz.create({
       data: {
         title: data.title,
         studentId: data.studentId, // Support for direct student assignment
         duration: Number(data.duration),
         totalMarks: Number(data.totalMarks),
+        deadline: data.deadline ? new Date(data.deadline) : null,
         createdBy: tutor.id,
         startTime: new Date()
       }
+    });
+
+    if (data.studentIds && Array.isArray(data.studentIds) && data.studentIds.length > 0) {
+      const assignments = data.studentIds.map((id: string) => ({
+        quizId: quiz.id,
+        studentId: id,
+      }));
+      await this.prisma.quizAssignment.createMany({ data: assignments });
+    } else if (data.studentId) {
+      await this.prisma.quizAssignment.create({ data: { quizId: quiz.id, studentId: data.studentId } });
+    }
+
+    return quiz;
+  }
+
+  async editQuiz(userId: string, quizId: string, data: any) {
+    const tutor = await this.prisma.tutorProfile.findUnique({ where: { userId } });
+    if (!tutor) throw new NotFoundException('Tutor not found');
+
+    const quiz = await this.prisma.quiz.findFirst({ where: { id: quizId, createdBy: tutor.id } });
+    if (!quiz) throw new NotFoundException('Quiz not found');
+
+    await this.prisma.quiz.update({
+      where: { id: quizId },
+      data: {
+        title: data.title,
+        duration: Number(data.duration),
+        totalMarks: Number(data.totalMarks),
+        deadline: data.deadline ? new Date(data.deadline) : null,
+      }
+    });
+
+    if (data.studentIds && Array.isArray(data.studentIds)) {
+      await this.prisma.quizAssignment.deleteMany({ where: { quizId } });
+      const assignments = data.studentIds.map((id: string) => ({
+        quizId: quiz.id,
+        studentId: id,
+      }));
+      await this.prisma.quizAssignment.createMany({ data: assignments });
+    } else if (data.studentId) {
+      await this.prisma.quizAssignment.deleteMany({ where: { quizId } });
+      await this.prisma.quizAssignment.create({ data: { quizId: quiz.id, studentId: data.studentId } });
+    }
+
+    return { success: true };
+  }
+
+  async allowReattempt(userId: string, quizId: string, studentId: string) {
+    const tutor = await this.prisma.tutorProfile.findUnique({ where: { userId } });
+    if (!tutor) throw new NotFoundException('Tutor not found');
+
+    const assignment = await this.prisma.quizAssignment.findUnique({
+      where: { quizId_studentId: { quizId, studentId } }
+    });
+
+    if (assignment) {
+      return this.prisma.quizAssignment.update({
+        where: { id: assignment.id },
+        data: { allowedAttempts: assignment.allowedAttempts + 1 }
+      });
+    }
+
+    // fallback if no assignment exists
+    return this.prisma.quizAssignment.create({
+      data: { quizId, studentId, allowedAttempts: 2 }
     });
   }
 

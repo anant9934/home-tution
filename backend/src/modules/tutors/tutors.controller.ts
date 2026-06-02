@@ -91,6 +91,18 @@ export class TutorsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Patch('quizzes/:id')
+  editQuiz(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.tutorsService.editQuiz(req.user.userId, id, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('quizzes/:id/reattempt/:studentId')
+  allowReattempt(@Request() req: any, @Param('id') id: string, @Param('studentId') studentId: string) {
+    return this.tutorsService.allowReattempt(req.user.userId, id, studentId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('attendance')
   getAttendance(@Request() req: any) {
     return this.tutorsService.getAttendance(req.user.userId);

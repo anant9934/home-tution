@@ -18,8 +18,10 @@ export default function TeacherQuizzesPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
-    title: "", studentId: "", duration: 30, totalMarks: 100
+    title: "", studentIds: [] as string[], duration: 30, totalMarks: 100, deadline: ""
   });
+  const [isEditing, setIsEditing]   = useState(false);
+  const [editingId, setEditingId]   = useState<string | null>(null);
 
   const [questions, setQuestions] = useState([
     { questionText: "", options: ["", "", "", ""], correctAnswer: 0, marks: 10 }
@@ -37,39 +39,75 @@ export default function TeacherQuizzesPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.studentId) return toast.error("Select a student");
+    if (form.studentIds.length === 0) return toast.error("Select at least one student");
     
     // validate questions
     for (const q of questions) {
-      if (!q.questionText || q.options.some(o => !o.trim())) {
+      if (!q.questionText || q.options.some((o: string) => !o.trim())) {
         return toast.error("Please fill all questions and options");
       }
     }
 
     setSubmitting(true);
     try {
-      // 1. Create Quiz
-      const quizRes = await fetchApi("/tutors/quizzes", {
-        method: "POST",
-        body: JSON.stringify(form), 
-      });
+      if (isEditing && editingId) {
+        await fetchApi(`/tutors/quizzes/${editingId}`, {
+          method: "PATCH",
+          body: JSON.stringify(form), 
+        });
+        await fetchApi(`/tutors/quizzes/${editingId}/questions`, {
+          method: "POST",
+          body: JSON.stringify({ questions }),
+        });
+        toast.success("Quiz updated successfully!");
+      } else {
+        const quizRes = await fetchApi("/tutors/quizzes", {
+          method: "POST",
+          body: JSON.stringify(form), 
+        });
+        await fetchApi(`/tutors/quizzes/${quizRes.id}/questions`, {
+          method: "POST",
+          body: JSON.stringify({ questions }),
+        });
+        toast.success("Quiz created successfully!");
+      }
 
-      // 2. Add Questions
-      await fetchApi(`/tutors/quizzes/${quizRes.id}/questions`, {
-        method: "POST",
-        body: JSON.stringify({ questions }),
-      });
+      const q = await fetchApi("/tutors/quizzes");
+      setQuizzes(Array.isArray(q) ? q : []);
 
-      setQuizzes(prev => [{ ...quizRes, questions, attempts: [] }, ...prev]);
       setShowCreate(false);
-      setForm({ title: "", studentId: "", duration: 30, totalMarks: 100 });
+      setForm({ title: "", studentIds: [], duration: 30, totalMarks: 100, deadline: "" });
       setQuestions([{ questionText: "", options: ["", "", "", ""], correctAnswer: 0, marks: 10 }]);
-      toast.success("Quiz created successfully!");
+      setIsEditing(false);
+      setEditingId(null);
     } catch (err: any) {
-      toast.error(err.message || "Failed to create quiz");
+      toast.error(err.message || "Failed to save quiz");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleReattempt = async (studentId: string) => {
+    try {
+      await fetchApi(`/tutors/quizzes/${selected.id}/reattempt/${studentId}`, { method: "POST" });
+      toast.success("Extra attempt granted!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to grant attempt");
+    }
+  };
+
+  const openEdit = (quiz: any) => {
+    setForm({
+      title: quiz.title,
+      studentIds: quiz.assignments?.map((a: any) => a.studentId) || (quiz.studentId ? [quiz.studentId] : []),
+      duration: quiz.duration,
+      totalMarks: quiz.totalMarks,
+      deadline: quiz.deadline ? new Date(quiz.deadline).toISOString().slice(0, 16) : ""
+    });
+    setQuestions(quiz.questions?.length > 0 ? quiz.questions : [{ questionText: "", options: ["", "", "", ""], correctAnswer: 0, marks: 10 }]);
+    setEditingId(quiz.id);
+    setIsEditing(true);
+    setShowCreate(true);
   };
 
   if (loading) return (
@@ -120,7 +158,9 @@ export default function TeacherQuizzesPage() {
                       <HelpCircle className="w-4 h-4 text-primary" /> {q.title}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {students.find(s => s.id === q.courseId)?.name || "Assigned Student"}
+                      {q.assignments?.length > 0 
+                        ? q.assignments.map((a: any) => a.student?.user?.name).join(", ")
+                        : (students.find(s => s.id === q.courseId)?.name || "Assigned Student")}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -135,12 +175,20 @@ export default function TeacherQuizzesPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => { setSelected(q); setShowView(true); }}
-                      className="text-primary text-sm font-semibold flex items-center gap-1.5 ml-auto hover:underline"
-                    >
-                      <Eye className="w-4 h-4" /> View Results
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        onClick={() => openEdit(q)}
+                        className="text-primary text-sm font-semibold flex items-center gap-1.5 hover:underline"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => { setSelected(q); setShowView(true); }}
+                        className="text-primary text-sm font-semibold flex items-center gap-1.5 hover:underline"
+                      >
+                        <Eye className="w-4 h-4" /> View Results
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -156,7 +204,7 @@ export default function TeacherQuizzesPage() {
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto pt-20 pb-20">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-7 animate-in zoom-in-95 my-auto">
-            <h2 className="text-xl font-bold font-heading mb-5">📝 Create New Quiz</h2>
+            <h2 className="text-xl font-bold font-heading mb-5">📝 {isEditing ? "Edit Quiz" : "Create New Quiz"}</h2>
             <form onSubmit={handleCreate} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
@@ -165,12 +213,28 @@ export default function TeacherQuizzesPage() {
                     className="w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="e.g. Physics Chapter 1 Test" />
                 </div>
                 <div className="col-span-2">
-                  <label className="text-sm font-semibold block mb-1.5">Assign To Student *</label>
-                  <select required value={form.studentId} onChange={e => setForm({ ...form, studentId: e.target.value })}
-                    className="w-full border rounded-xl px-3 py-2.5 text-sm">
-                    <option value="">Select student...</option>
-                    {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
+                  <label className="text-sm font-semibold block mb-1.5">Assign To Students *</label>
+                  <div className="w-full border rounded-xl px-3 py-2.5 text-sm max-h-32 overflow-y-auto space-y-2 bg-slate-50">
+                    {students.map(s => (
+                      <label key={s.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded">
+                        <input 
+                          type="checkbox" 
+                          checked={form.studentIds.includes(s.id)}
+                          onChange={e => {
+                            if (e.target.checked) setForm({ ...form, studentIds: [...form.studentIds, s.id] });
+                            else setForm({ ...form, studentIds: form.studentIds.filter(id => id !== s.id) });
+                          }}
+                          className="w-4 h-4 text-primary rounded border-slate-300"
+                        />
+                        <span>{s.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold block mb-1.5">Deadline</label>
+                  <input type="datetime-local" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })}
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm" />
                 </div>
                 <div>
                   <label className="text-sm font-semibold block mb-1.5">Duration (mins) *</label>
@@ -271,9 +335,15 @@ export default function TeacherQuizzesPage() {
                         <div className="text-xs text-muted-foreground">{new Date(att.startTime).toLocaleString("en-IN")}</div>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex flex-col items-end gap-2">
                       <div className="text-2xl font-bold text-primary">{att.score} <span className="text-sm text-muted-foreground font-normal">/ {selected.totalMarks}</span></div>
                       <Badge variant="outline" className="bg-success/10 text-success border-success/20 mt-1">Completed</Badge>
+                      <button 
+                        onClick={() => handleReattempt(att.studentId)}
+                        className="text-xs text-primary hover:underline font-bold"
+                      >
+                        Allow Re-attempt
+                      </button>
                     </div>
                   </div>
                 ))

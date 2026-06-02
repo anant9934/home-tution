@@ -379,11 +379,16 @@ export class StudentsService {
       where: { 
         OR: [
           { course: { class: student.class, board: student.board } },
-          { studentId: student.id }
-        ],
-        attempts: { none: { studentId: student.id } }
+          { studentId: student.id },
+          { assignments: { some: { studentId: student.id } } }
+        ]
       },
-      include: { course: true, questions: true },
+      include: { 
+        course: true, 
+        questions: true,
+        assignments: { where: { studentId: student.id } },
+        attempts: { where: { studentId: student.id } }
+      },
     });
 
     const completed = await this.prisma.quizAttempt.findMany({
@@ -392,12 +397,22 @@ export class StudentsService {
       orderBy: { submittedAt: 'desc' }
     });
 
+    const now = new Date();
+    const validPending = pending.filter(q => {
+      if (q.deadline && q.deadline < now) return false;
+      const allowedAttempts = q.assignments?.[0]?.allowedAttempts || 1;
+      return q.attempts.length < allowedAttempts;
+    });
+
     return {
-      pending: pending.map(q => ({
+      pending: validPending.map(q => ({
         id: q.id,
         title: q.title,
         subject: q.course?.subject || 'Direct Quiz',
         duration: q.duration,
+        deadline: q.deadline ? q.deadline.toISOString() : null,
+        allowedAttempts: q.assignments?.[0]?.allowedAttempts || 1,
+        attemptsTaken: q.attempts.length,
         questions: q.questions.map(qst => ({
           id: qst.id,
           text: qst.questionText,

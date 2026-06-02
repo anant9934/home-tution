@@ -75,6 +75,7 @@ model StudentProfile {
   attendance       Attendance[]
   submissions      Submission[]
   quizAttempts     QuizAttempt[]
+  quizAssignments  QuizAssignment[]
   xp               XP[]
   badges           StudentBadge[]
   leaderboardStats Leaderboard[]
@@ -274,9 +275,23 @@ model Quiz {
   createdBy  String
   startTime  DateTime?
   endTime    DateTime?
+  deadline   DateTime?
 
-  questions Question[]
-  attempts  QuizAttempt[]
+  questions   Question[]
+  attempts    QuizAttempt[]
+  assignments QuizAssignment[]
+}
+
+model QuizAssignment {
+  id              String         @id @default(uuid())
+  quizId          String
+  quiz            Quiz           @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  studentId       String
+  student         StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  allowedAttempts Int            @default(1)
+  assignedAt      DateTime       @default(now())
+
+  @@unique([quizId, studentId])
 }
 
 model Question {

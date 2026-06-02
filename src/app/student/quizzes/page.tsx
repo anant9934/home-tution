@@ -106,9 +106,13 @@ export default function StudentQuizzesPage() {
                     <div>
                        <Badge variant="secondary" className="mb-2 bg-primary/10 text-primary">{quiz.subject}</Badge>
                        <h3 className="font-bold text-lg">{quiz.title}</h3>
+                       {quiz.deadline && <div className="text-xs text-red-500 font-semibold mt-1">Due: {new Date(quiz.deadline).toLocaleString()}</div>}
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex flex-col items-end">
                        <div className="text-sm font-bold text-muted-foreground">{quiz.duration} mins</div>
+                       {quiz.allowedAttempts > 1 && (
+                         <div className="text-xs font-bold text-primary mt-1">Attempt {quiz.attemptsTaken + 1} of {quiz.allowedAttempts}</div>
+                       )}
                     </div>
                   </div>
                   <Button 
