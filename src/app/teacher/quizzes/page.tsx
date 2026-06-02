@@ -51,7 +51,7 @@ export default function TeacherQuizzesPage() {
       // 1. Create Quiz
       const quizRes = await fetchApi("/tutors/quizzes", {
         method: "POST",
-        body: JSON.stringify({ ...form, courseId: form.studentId }), // Using courseId field for studentId for now to avoid schema changes
+        body: JSON.stringify(form), 
       });
 
       // 2. Add Questions
