@@ -2,50 +2,33 @@
 
 import { useState, useEffect } from "react";
 import { fetchApi } from "@/lib/api";
-import { ClipboardList, Plus, FileText, Calendar, Users, Eye, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ClipboardList, Plus, FileText, Calendar, Users, Eye, CheckCircle2, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 export default function TeacherAssignmentsPage() {
   const [assignments, setAssignments] = useState<any[]>([]);
-  const [courses, setCourses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Modals state
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isViewOpen, setIsViewOpen] = useState(false);
-  const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [students, setStudents]       = useState<any[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [showCreate, setShowCreate]   = useState(false);
+  const [showView, setShowView]       = useState(false);
+  const [selected, setSelected]       = useState<any>(null);
+  const [submitting, setSubmitting]   = useState(false);
+  const [grading, setGrading]         = useState<Record<string, { marks: string; feedback: string }>>({});
 
-  // Form state
-  const [formData, setFormData] = useState({ title: '', description: '', courseId: '', deadline: '', maxMarks: 100 });
-  const [grading, setGrading] = useState<{[key: string]: { marks: string, feedback: string }}>({});
+  const [form, setForm] = useState({
+    title: "", description: "", studentId: "", deadline: "", maxMarks: 100
+  });
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const [assignData, coursesData] = await Promise.all([
-          fetchApi("/tutors/assignments"),
-          fetchApi("/courses/mine")
-        ]);
-        setAssignments(assignData);
-        setCourses(coursesData);
-        if (coursesData.length > 0) {
-          setFormData(prev => ({ ...prev, courseId: coursesData[0].id }));
-        }
-      } catch (err: any) {
-        setError(err.message || "Failed to load data");
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
+    Promise.all([fetchApi("/tutors/assignments"), fetchApi("/tutors/students")])
+      .then(([a, s]) => {
+        setAssignments(Array.isArray(a) ? a : []);
+        setStudents(Array.isArray(s) ? s : []);
+      })
+      .catch(err => toast.error(err.message || "Failed to load"))
+      .finally(() => setLoading(false));
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -54,247 +37,253 @@ export default function TeacherAssignmentsPage() {
     try {
       const res = await fetchApi("/tutors/assignments", {
         method: "POST",
-        body: JSON.stringify(formData)
+        body: JSON.stringify(form),
       });
       setAssignments(prev => [res, ...prev]);
-      setIsCreateOpen(false);
-      toast.success("Assignment created successfully!");
+      setShowCreate(false);
+      setForm({ title: "", description: "", studentId: "", deadline: "", maxMarks: 100 });
+      toast.success("Assignment created!");
     } catch (err: any) {
-      toast.error(err.message || "Failed to create assignment");
+      toast.error(err.message || "Failed to create");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleGrade = async (submissionId: string) => {
-    const gradeData = grading[submissionId];
-    if (!gradeData?.marks) return toast.error("Please enter marks");
-    
+    const g = grading[submissionId];
+    if (!g?.marks) return toast.error("Enter marks first");
     try {
       await fetchApi(`/tutors/submissions/${submissionId}/grade`, {
         method: "PATCH",
-        body: JSON.stringify({ marks: gradeData.marks, feedback: gradeData.feedback || "" })
+        body: JSON.stringify({ marks: g.marks, feedback: g.feedback || "" }),
       });
-      
-      // Update local state
-      setSelectedAssignment((prev: any) => ({
+      setSelected((prev: any) => ({
         ...prev,
-        submissions: prev.submissions.map((s: any) => 
-          s.id === submissionId ? { ...s, marks: Number(gradeData.marks), feedback: gradeData.feedback } : s
-        )
+        submissions: prev.submissions.map((s: any) =>
+          s.id === submissionId ? { ...s, marks: Number(g.marks), feedback: g.feedback } : s
+        ),
       }));
       toast.success("Grade saved!");
     } catch (err: any) {
-      toast.error(err.message || "Failed to grade submission");
+      toast.error(err.message || "Failed to grade");
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6 pb-20 lg:pb-8">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] w-full rounded-3xl" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return <div className="text-destructive font-semibold p-8 text-center">{error}</div>;
-  }
+  if (loading) return (
+    <div className="space-y-6 pb-20">
+      <Skeleton className="h-10 w-56" />
+      <Skeleton className="h-64 rounded-3xl" />
+    </div>
+  );
 
   return (
     <div className="space-y-8 pb-20 lg:pb-8 animate-in fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold font-heading flex items-center gap-3">
             <ClipboardList className="w-8 h-8 text-primary" /> Assignments
           </h1>
-          <p className="text-muted-foreground mt-1">Manage homework, track submissions, and grade assignments.</p>
+          <p className="text-muted-foreground mt-1">Create homework, track submissions and grade your students.</p>
         </div>
-        
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger render={
-            <Button className="rounded-full shadow-sm gap-2">
-              <Plus className="w-4 h-4" /> Create Assignment
-            </Button>
-          } />
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Create New Assignment</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Title</label>
-                <Input required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="e.g. Algebra Worksheet" />
+        <button
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 bg-primary text-white font-bold px-5 py-2.5 rounded-full shadow-sm hover:bg-primary/90 text-sm"
+        >
+          <Plus className="w-4 h-4" /> Create Assignment
+        </button>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white border rounded-3xl overflow-hidden shadow-sm">
+        <div className="p-5 border-b bg-slate-50">
+          <h2 className="font-bold font-heading">All Assignments</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="text-muted-foreground uppercase text-xs">
+              <tr>
+                <th className="px-6 py-4">Title</th>
+                <th className="px-6 py-4">Deadline</th>
+                <th className="px-6 py-4">Submissions</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {assignments.map(a => {
+                const pastDue = new Date(a.deadline) < new Date();
+                return (
+                  <tr key={a.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-bold flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-primary" /> {a.title}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {a.course?.title || "Direct Assignment"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className={`font-medium flex items-center gap-1.5 ${pastDue ? "text-destructive" : ""}`}>
+                        <Calendar className="w-4 h-4" />
+                        {new Date(a.deadline).toLocaleDateString("en-IN")}
+                      </div>
+                      {pastDue && <div className="text-[10px] text-destructive font-bold uppercase mt-0.5">Past Due</div>}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-bold">{a.submissions?.length || 0}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant="outline" className={pastDue ? "text-slate-500 bg-slate-50" : "text-green-700 bg-green-50 border-green-200"}>
+                        {pastDue ? "Closed" : "Active"}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => { setSelected(a); setShowView(true); }}
+                        className="text-primary text-sm font-semibold flex items-center gap-1.5 ml-auto hover:underline"
+                      >
+                        <Eye className="w-4 h-4" /> View
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {assignments.length === 0 && (
+                <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">No assignments yet.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Create Modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-7 animate-in zoom-in-95">
+            <h2 className="text-xl font-bold font-heading mb-5">📋 Create Assignment</h2>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold block mb-1.5">Title *</label>
+                <input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
+                  placeholder="e.g. Chapter 5 Worksheet"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Course</label>
-                <select 
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={formData.courseId} 
-                  onChange={e => setFormData({...formData, courseId: e.target.value})}
-                  required
+              <div>
+                <label className="text-sm font-semibold block mb-1.5">Description / Instructions *</label>
+                <textarea required rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+                  placeholder="Solve questions 1–20 from the textbook..."
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold block mb-1.5">Assign To (Student) *</label>
+                <select required value={form.studentId} onChange={e => setForm({ ...form, studentId: e.target.value })}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 >
-                  {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                  <option value="">Select student...</option>
+                  {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Description</label>
-                <Textarea required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Instructions..." />
-              </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Deadline</label>
-                  <Input type="date" required value={formData.deadline} onChange={e => setFormData({...formData, deadline: e.target.value})} />
+                <div>
+                  <label className="text-sm font-semibold block mb-1.5">Deadline *</label>
+                  <input type="date" required value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Max Marks</label>
-                  <Input type="number" required value={formData.maxMarks} onChange={e => setFormData({...formData, maxMarks: parseInt(e.target.value)})} />
+                <div>
+                  <label className="text-sm font-semibold block mb-1.5">Max Marks</label>
+                  <input type="number" value={form.maxMarks} onChange={e => setForm({ ...form, maxMarks: Number(e.target.value) })}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
                 </div>
               </div>
-              <Button type="submit" className="w-full mt-2" disabled={submitting}>
-                {submitting ? "Creating..." : "Create Assignment"}
-              </Button>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowCreate(false)}
+                  className="flex-1 border text-slate-600 font-semibold py-2.5 rounded-xl hover:bg-slate-50 text-sm">
+                  Cancel
+                </button>
+                <button type="submit" disabled={submitting}
+                  className="flex-1 bg-primary text-white font-bold py-2.5 rounded-xl hover:bg-primary/90 text-sm flex items-center justify-center gap-2 disabled:opacity-60">
+                  {submitting ? <><Loader2 className="w-4 h-4 animate-spin" />Creating...</> : "Create"}
+                </button>
+              </div>
             </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </div>
+        </div>
+      )}
 
-      <div className="bg-white border rounded-3xl overflow-hidden shadow-sm">
-         <div className="p-6 border-b bg-slate-50">
-            <h2 className="font-bold font-heading text-lg">Active Assignments</h2>
-         </div>
-         <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-               <thead className="text-muted-foreground uppercase text-xs">
-                  <tr>
-                     <th className="px-6 py-4 font-semibold">Title & Course</th>
-                     <th className="px-6 py-4 font-semibold">Deadline</th>
-                     <th className="px-6 py-4 font-semibold">Stats</th>
-                     <th className="px-6 py-4 font-semibold">Status</th>
-                     <th className="px-6 py-4 font-semibold text-right">Actions</th>
-                  </tr>
-               </thead>
-               <tbody className="divide-y">
-                  {assignments.map(a => {
-                     const isPastDue = new Date(a.deadline) < new Date();
-                     return (
-                       <tr key={a.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-6 py-4">
-                             <div className="font-bold text-base flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-primary" /> {a.title}
-                             </div>
-                             <div className="text-xs text-muted-foreground mt-1">{a.course?.title || "General"}</div>
-                          </td>
-                          <td className="px-6 py-4">
-                             <div className={`font-medium flex items-center gap-1.5 ${isPastDue ? 'text-destructive' : ''}`}>
-                                <Calendar className="w-4 h-4" /> {new Date(a.deadline).toLocaleDateString()}
-                             </div>
-                             {isPastDue && <div className="text-[10px] text-destructive font-bold mt-1 uppercase tracking-wide">Past Due</div>}
-                          </td>
-                          <td className="px-6 py-4">
-                             <div className="flex items-center gap-2 text-sm">
-                                <Users className="w-4 h-4 text-muted-foreground" />
-                                <span className="font-bold">{a.submissions?.length || 0}</span> submissions
-                             </div>
-                          </td>
-                          <td className="px-6 py-4">
-                             <Badge variant="outline" className={isPastDue ? 'bg-slate-100 text-slate-500 border-slate-200' : 'bg-success/10 text-success border-success/20'}>
-                                {isPastDue ? 'Closed' : 'Active'}
-                             </Badge>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                             <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="font-semibold text-primary hover:text-primary"
-                                onClick={() => {
-                                  setSelectedAssignment(a);
-                                  setIsViewOpen(true);
-                                }}
-                             >
-                                <Eye className="w-4 h-4 mr-1.5" /> View Submissions
-                             </Button>
-                          </td>
-                       </tr>
-                     );
-                  })}
-                  {assignments.length === 0 && (
-                     <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">You haven't created any assignments yet.</td></tr>
-                  )}
-               </tbody>
-            </table>
-         </div>
-      </div>
-
-      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl">
-              Submissions: {selectedAssignment?.title}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="mt-4 space-y-4">
-            {selectedAssignment?.submissions?.length === 0 ? (
-              <div className="text-center p-8 text-muted-foreground bg-slate-50 rounded-2xl">
-                No submissions received yet.
-              </div>
-            ) : (
-              selectedAssignment?.submissions?.map((sub: any) => (
-                <div key={sub.id} className="border rounded-2xl p-4 bg-white flex flex-col md:flex-row gap-6">
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold">
-                        {sub.student.user.name.charAt(0)}
-                      </div>
-                      <div>
-                        <h4 className="font-bold">{sub.student.user.name}</h4>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Calendar className="w-3 h-3" /> Submitted: {new Date(sub.submittedAt).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="bg-slate-50 p-3 rounded-xl border flex items-center justify-between">
-                       <span className="text-sm font-medium">Homework File</span>
-                       <a href={sub.submissionUrl} target="_blank" rel="noopener noreferrer">
-                         <Button size="sm" variant="outline">Download</Button>
-                       </a>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 bg-slate-50 p-4 rounded-xl border">
-                    {sub.marks ? (
-                      <div className="h-full flex flex-col justify-center items-center text-center space-y-2">
-                        <CheckCircle2 className="w-8 h-8 text-success mx-auto" />
+      {/* View Submissions Modal */}
+      {showView && selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-7 animate-in zoom-in-95">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-bold font-heading">Submissions: {selected.title}</h2>
+              <button onClick={() => setShowView(false)} className="text-muted-foreground hover:text-foreground font-bold text-lg">✕</button>
+            </div>
+            <div className="space-y-4">
+              {(selected.submissions || []).length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground bg-slate-50 rounded-2xl">No submissions yet.</div>
+              ) : (
+                (selected.submissions || []).map((sub: any) => (
+                  <div key={sub.id} className="border rounded-2xl p-4 flex flex-col md:flex-row gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold text-sm">
+                          {sub.student?.user?.name?.charAt(0) || "S"}
+                        </div>
                         <div>
-                          <div className="text-2xl font-bold text-success">{sub.marks} / {selectedAssignment.maxMarks}</div>
-                          <div className="text-sm text-muted-foreground mt-1">"{sub.feedback}"</div>
+                          <div className="font-bold text-sm">{sub.student?.user?.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(sub.submittedAt).toLocaleString("en-IN")}
+                          </div>
                         </div>
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <h5 className="text-sm font-bold">Grade Submission</h5>
-                        <Input 
-                          type="number" 
-                          placeholder={`Marks (out of ${selectedAssignment.maxMarks})`} 
-                          onChange={e => setGrading({...grading, [sub.id]: { ...grading[sub.id], marks: e.target.value }})}
-                        />
-                        <Textarea 
-                          placeholder="Feedback comments..." 
-                          className="h-20"
-                          onChange={e => setGrading({...grading, [sub.id]: { ...grading[sub.id], feedback: e.target.value }})}
-                        />
-                        <Button className="w-full" onClick={() => handleGrade(sub.id)}>Submit Grade</Button>
-                      </div>
-                    )}
+                      {sub.submissionUrl && (
+                        <a href={sub.submissionUrl} target="_blank" rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary/5">
+                          📎 Download Submission
+                        </a>
+                      )}
+                    </div>
+                    <div className="flex-1 bg-slate-50 rounded-xl p-3">
+                      {sub.marks ? (
+                        <div className="text-center">
+                          <CheckCircle2 className="w-8 h-8 text-green-500 mx-auto mb-1" />
+                          <div className="text-2xl font-bold text-green-600">{sub.marks} / {selected.maxMarks}</div>
+                          {sub.feedback && <div className="text-xs text-muted-foreground mt-1">"{sub.feedback}"</div>}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="text-xs font-bold mb-2">Grade</div>
+                          <input type="number" placeholder={`Marks / ${selected.maxMarks}`}
+                            onChange={e => setGrading({ ...grading, [sub.id]: { ...grading[sub.id], marks: e.target.value } })}
+                            className="w-full border rounded-lg px-3 py-2 text-sm"
+                          />
+                          <textarea placeholder="Feedback..." rows={2}
+                            onChange={e => setGrading({ ...grading, [sub.id]: { ...grading[sub.id], feedback: e.target.value } })}
+                            className="w-full border rounded-lg px-3 py-2 text-sm resize-none"
+                          />
+                          <button onClick={() => handleGrade(sub.id)}
+                            className="w-full bg-primary text-white font-bold py-2 rounded-lg text-sm">
+                            Save Grade
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 }
-

@@ -217,33 +217,32 @@ export class TutorsService {
     return updatedBooking;
   }
 
-  async scheduleClass(userId: string, data: { title: string; studentName: string; time: string }) {
+  async scheduleClass(userId: string, data: {
+    studentId: string;
+    subject: string;
+    scheduledAt: string;
+    duration: number;
+    location?: string;
+    notes?: string;
+  }) {
     const tutor = await this.prisma.tutorProfile.findUnique({ where: { userId } });
     if (!tutor) throw new NotFoundException('Tutor not found');
 
-    // Find student by name (mock-like behavior, in real app would use student ID)
-    const student = await this.prisma.studentProfile.findFirst({
-      where: { user: { name: data.studentName } }
-    });
-    
-    const studentId = student ? student.id : (await this.prisma.studentProfile.findFirst())?.id;
-    if (!studentId) throw new Error("No student available to assign to this class.");
+    const student = await this.prisma.studentProfile.findUnique({ where: { id: data.studentId } });
+    if (!student) throw new NotFoundException('Student not found');
 
-    // Parse time roughly
-    let scheduledAt = new Date();
-    if (data.time.toLowerCase().includes('tomorrow')) {
-       scheduledAt.setDate(scheduledAt.getDate() + 1);
-    }
-    
     return this.prisma.booking.create({
       data: {
         tutorId: tutor.id,
-        studentId: studentId,
-        bookingType: 'GROUP_BATCH',
-        scheduledAt: scheduledAt,
-        duration: 60,
+        studentId: data.studentId,
+        bookingType: 'ONE_ON_ONE',
+        scheduledAt: new Date(data.scheduledAt),
+        duration: Number(data.duration) || 60,
         status: 'CONFIRMED',
-        meetingLink: `https://meet.jit.si/HomeTuition-${Math.random().toString(36).substring(2, 10)}`,
+        meetingLink: data.location || null,
+      },
+      include: {
+        student: { include: { user: { select: { name: true } } } }
       }
     });
   }
@@ -412,6 +411,20 @@ export class TutorsService {
 
     return this.prisma.attendance.findMany({
       where: { markedBy: tutor.id },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        student: { include: { user: { select: { name: true } } } },
+        session: { include: { booking: { select: { scheduledAt: true } } } }
+      }
+    });
+  }
+
+  async getStudentAttendance(userId: string, studentId: string) {
+    const tutor = await this.prisma.tutorProfile.findUnique({ where: { userId } });
+    if (!tutor) throw new NotFoundException('Tutor not found');
+
+    return this.prisma.attendance.findMany({
+      where: { markedBy: tutor.id, studentId },
       orderBy: { createdAt: 'desc' },
       include: {
         student: { include: { user: { select: { name: true } } } },

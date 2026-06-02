@@ -2,67 +2,69 @@
 
 import { useState, useEffect } from "react";
 import { fetchApi } from "@/lib/api";
-import { PenTool, Plus, Calendar, Clock, BarChart, Settings, CheckCircle2 } from "lucide-react";
+import { HelpCircle, Plus, Calendar, Users, Eye, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 export default function TeacherQuizzesPage() {
-  const [quizzes, setQuizzes] = useState<any[]>([]);
-  const [courses, setCourses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Modals state
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isQuestionsOpen, setIsQuestionsOpen] = useState(false);
-  const [isResultsOpen, setIsResultsOpen] = useState(false);
-  const [selectedQuiz, setSelectedQuiz] = useState<any>(null);
+  const [quizzes, setQuizzes]       = useState<any[]>([]);
+  const [students, setStudents]     = useState<any[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [showView, setShowView]     = useState(false);
+  const [selected, setSelected]     = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form states
-  const [quizForm, setQuizForm] = useState({ title: '', courseId: '', duration: 30, totalMarks: 100 });
-  const [questionsForm, setQuestionsForm] = useState<any[]>([]);
-  
+  const [form, setForm] = useState({
+    title: "", studentId: "", duration: 30, totalMarks: 100
+  });
+
+  const [questions, setQuestions] = useState([
+    { questionText: "", options: ["", "", "", ""], correctAnswer: 0, marks: 10 }
+  ]);
+
   useEffect(() => {
-    async function loadData() {
-      try {
-        const [quizData, coursesData] = await Promise.all([
-          fetchApi("/tutors/quizzes"),
-          fetchApi("/courses/mine")
-        ]);
-        setQuizzes(quizData);
-        setCourses(coursesData);
-        if (coursesData.length > 0) {
-          setQuizForm(prev => ({ ...prev, courseId: coursesData[0].id }));
-        }
-      } catch (err: any) {
-        setError(err.message || "Failed to load data");
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
+    Promise.all([fetchApi("/tutors/quizzes"), fetchApi("/tutors/students")])
+      .then(([q, s]) => {
+        setQuizzes(Array.isArray(q) ? q : []);
+        setStudents(Array.isArray(s) ? s : []);
+      })
+      .catch(err => toast.error(err.message || "Failed to load quizzes"))
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleCreateQuiz = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.studentId) return toast.error("Select a student");
+    
+    // validate questions
+    for (const q of questions) {
+      if (!q.questionText || q.options.some(o => !o.trim())) {
+        return toast.error("Please fill all questions and options");
+      }
+    }
+
     setSubmitting(true);
     try {
-      const res = await fetchApi("/tutors/quizzes", {
+      // 1. Create Quiz
+      const quizRes = await fetchApi("/tutors/quizzes", {
         method: "POST",
-        body: JSON.stringify(quizForm)
+        body: JSON.stringify({ ...form, courseId: form.studentId }), // Using courseId field for studentId for now to avoid schema changes
       });
-      // Ensure we add the arrays so the UI doesn't crash on length checks
-      res.questions = [];
-      res.attempts = [];
-      setQuizzes(prev => [res, ...prev]);
-      setIsCreateOpen(false);
-      toast.success("Quiz created successfully! Now add some questions.");
+
+      // 2. Add Questions
+      await fetchApi(`/tutors/quizzes/${quizRes.id}/questions`, {
+        method: "POST",
+        body: JSON.stringify({ questions }),
+      });
+
+      setQuizzes(prev => [{ ...quizRes, questions, attempts: [] }, ...prev]);
+      setShowCreate(false);
+      setForm({ title: "", studentId: "", duration: 30, totalMarks: 100 });
+      setQuestions([{ questionText: "", options: ["", "", "", ""], correctAnswer: 0, marks: 10 }]);
+      toast.success("Quiz created successfully!");
     } catch (err: any) {
       toast.error(err.message || "Failed to create quiz");
     } finally {
@@ -70,297 +72,216 @@ export default function TeacherQuizzesPage() {
     }
   };
 
-  const openQuestionsModal = (quiz: any) => {
-    setSelectedQuiz(quiz);
-    if (quiz.questions && quiz.questions.length > 0) {
-      setQuestionsForm(quiz.questions);
-    } else {
-      setQuestionsForm([{ questionText: '', options: ['', '', '', ''], correctAnswer: '', marks: 10 }]);
-    }
-    setIsQuestionsOpen(true);
-  };
-
-  const handleSaveQuestions = async () => {
-    setSubmitting(true);
-    try {
-      await fetchApi(`/tutors/quizzes/${selectedQuiz.id}/questions`, {
-        method: "POST",
-        body: JSON.stringify({ questions: questionsForm })
-      });
-      setQuizzes(prev => prev.map(q => q.id === selectedQuiz.id ? { ...q, questions: questionsForm } : q));
-      setIsQuestionsOpen(false);
-      toast.success("Questions saved successfully!");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save questions");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="space-y-6 pb-20 lg:pb-8">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[400px] w-full rounded-3xl" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return <div className="text-destructive font-semibold p-8 text-center">{error}</div>;
-  }
+  if (loading) return (
+    <div className="space-y-6 pb-20">
+      <Skeleton className="h-10 w-48" />
+      <Skeleton className="h-64 rounded-3xl" />
+    </div>
+  );
 
   return (
     <div className="space-y-8 pb-20 lg:pb-8 animate-in fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold font-heading flex items-center gap-3">
-            <PenTool className="w-8 h-8 text-primary" /> Quizzes & Tests
+            <HelpCircle className="w-8 h-8 text-primary" /> Quizzes
           </h1>
-          <p className="text-muted-foreground mt-1">Create multiple-choice quizzes, assess performance automatically.</p>
+          <p className="text-muted-foreground mt-1">Create multiple-choice quizzes to assess your students.</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger render={
-            <Button className="rounded-full shadow-sm gap-2">
-              <Plus className="w-4 h-4" /> Create New Quiz
-            </Button>
-          } />
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Create New Quiz</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreateQuiz} className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Title</label>
-                <Input required value={quizForm.title} onChange={e => setQuizForm({...quizForm, title: e.target.value})} placeholder="e.g. Chapter 1 Test" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Course</label>
-                <select 
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={quizForm.courseId} 
-                  onChange={e => setQuizForm({...quizForm, courseId: e.target.value})}
-                  required
-                >
-                  {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-                </select>
-              </div>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 bg-primary text-white font-bold px-5 py-2.5 rounded-full shadow-sm hover:bg-primary/90 text-sm"
+        >
+          <Plus className="w-4 h-4" /> Create Quiz
+        </button>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white border rounded-3xl overflow-hidden shadow-sm">
+        <div className="p-5 border-b bg-slate-50">
+          <h2 className="font-bold font-heading">Recent Quizzes</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="text-muted-foreground uppercase text-xs">
+              <tr>
+                <th className="px-6 py-4">Title & Student</th>
+                <th className="px-6 py-4">Questions</th>
+                <th className="px-6 py-4">Attempts</th>
+                <th className="px-6 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {quizzes.map(q => (
+                <tr key={q.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-base flex items-center gap-2">
+                      <HelpCircle className="w-4 h-4 text-primary" /> {q.title}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {students.find(s => s.id === q.courseId)?.name || "Assigned Student"}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <Badge variant="outline" className="bg-slate-50">
+                      {q.questions?.length || 0} Qs • {q.totalMarks} Marks
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-muted-foreground" />
+                      <span className="font-bold">{q.attempts?.length || 0}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      onClick={() => { setSelected(q); setShowView(true); }}
+                      className="text-primary text-sm font-semibold flex items-center gap-1.5 ml-auto hover:underline"
+                    >
+                      <Eye className="w-4 h-4" /> View Results
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {quizzes.length === 0 && (
+                <tr><td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">No quizzes created yet.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Create Modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto pt-20 pb-20">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-7 animate-in zoom-in-95 my-auto">
+            <h2 className="text-xl font-bold font-heading mb-5">📝 Create New Quiz</h2>
+            <form onSubmit={handleCreate} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Duration (mins)</label>
-                  <Input type="number" required value={quizForm.duration} onChange={e => setQuizForm({...quizForm, duration: parseInt(e.target.value)})} />
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold block mb-1.5">Quiz Title *</label>
+                  <input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm" placeholder="e.g. Physics Chapter 1 Test" />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Total Marks</label>
-                  <Input type="number" required value={quizForm.totalMarks} onChange={e => setQuizForm({...quizForm, totalMarks: parseInt(e.target.value)})} />
+                <div className="col-span-2">
+                  <label className="text-sm font-semibold block mb-1.5">Assign To Student *</label>
+                  <select required value={form.studentId} onChange={e => setForm({ ...form, studentId: e.target.value })}
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm">
+                    <option value="">Select student...</option>
+                    {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
                 </div>
-              </div>
-              <Button type="submit" className="w-full mt-2" disabled={submitting}>
-                {submitting ? "Creating..." : "Create Quiz"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-         {quizzes.map(q => (
-            <div key={q.id} className="bg-white border rounded-3xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col group relative overflow-hidden">
-               {/* Decorative background accent */}
-               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors"></div>
-               
-               <div className="flex justify-between items-start mb-4 relative z-10">
-                  <div className="space-y-1">
-                     <Badge variant="secondary" className="bg-slate-100 text-xs mb-2 block w-fit">{q.course?.title || 'General'}</Badge>
-                     <h3 className="font-bold text-lg font-heading leading-tight">{q.title}</h3>
-                  </div>
-               </div>
-               
-               <div className="grid grid-cols-2 gap-4 my-6 relative z-10">
-                  <div className="space-y-1">
-                     <div className="text-xs text-muted-foreground flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> Date</div>
-                     <div className="text-sm font-semibold">{q.startTime ? new Date(q.startTime).toLocaleDateString() : 'Draft'}</div>
-                  </div>
-                  <div className="space-y-1">
-                     <div className="text-xs text-muted-foreground flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Duration</div>
-                     <div className="text-sm font-semibold">{q.duration} mins</div>
-                  </div>
-                  <div className="space-y-1">
-                     <div className="text-xs text-muted-foreground flex items-center gap-1.5"><BarChart className="w-3.5 h-3.5" /> Marks</div>
-                     <div className="text-sm font-semibold">{q.totalMarks} Total</div>
-                  </div>
-                  <div className="space-y-1">
-                     <div className="text-xs text-muted-foreground flex items-center gap-1.5"><Settings className="w-3.5 h-3.5" /> Questions</div>
-                     <div className="text-sm font-semibold text-primary underline cursor-pointer" onClick={() => openQuestionsModal(q)}>{q.questions?.length || 0} Qs (Edit)</div>
-                  </div>
-               </div>
-               
-               <div className="mt-auto pt-4 border-t flex items-center justify-between relative z-10">
-                  <div className="text-sm font-semibold text-primary">{q.attempts?.length || 0} Attempts</div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="rounded-xl font-bold"
-                    onClick={() => {
-                      setSelectedQuiz(q);
-                      setIsResultsOpen(true);
-                    }}
-                  >
-                    View Results
-                  </Button>
-               </div>
-            </div>
-         ))}
-         
-         {quizzes.length === 0 && (
-            <div className="col-span-full py-16 text-center border-2 border-dashed rounded-3xl bg-slate-50/50">
-               <PenTool className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-               <h3 className="text-lg font-bold">No Quizzes Yet</h3>
-               <p className="text-muted-foreground max-w-sm mx-auto mb-6">You haven't created any quizzes for your students. Create one to test their knowledge!</p>
-               <Button className="rounded-full shadow-sm gap-2" onClick={() => setIsCreateOpen(true)}>
-                 <Plus className="w-4 h-4" /> Create New Quiz
-               </Button>
-            </div>
-         )}
-      </div>
-
-      {/* MANAGE QUESTIONS MODAL */}
-      <Dialog open={isQuestionsOpen} onOpenChange={setIsQuestionsOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl flex justify-between items-center pr-4">
-              <span>Manage Questions: {selectedQuiz?.title}</span>
-              <Button size="sm" onClick={() => setQuestionsForm([...questionsForm, { questionText: '', options: ['', '', '', ''], correctAnswer: '', marks: 10 }])}>
-                <Plus className="w-4 h-4 mr-1" /> Add Question
-              </Button>
-            </DialogTitle>
-          </DialogHeader>
-          <div className="mt-4 space-y-6">
-            {questionsForm.map((q, idx) => (
-              <div key={idx} className="border rounded-2xl p-4 bg-slate-50 relative">
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
-                  className="absolute -top-3 -right-3 h-8 w-8 rounded-full p-0"
-                  onClick={() => setQuestionsForm(questionsForm.filter((_, i) => i !== idx))}
-                >
-                  &times;
-                </Button>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold">Question {idx + 1}</label>
-                    <Input 
-                      required 
-                      value={q.questionText} 
-                      onChange={e => {
-                        const newQ = [...questionsForm];
-                        newQ[idx].questionText = e.target.value;
-                        setQuestionsForm(newQ);
-                      }} 
-                      placeholder="e.g. What is the powerhouse of the cell?" 
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    {q.options.map((opt: string, optIdx: number) => (
-                      <div key={optIdx} className="space-y-1">
-                        <label className="text-xs font-semibold text-muted-foreground">Option {String.fromCharCode(65 + optIdx)}</label>
-                        <Input 
-                          value={opt}
-                          onChange={e => {
-                            const newQ = [...questionsForm];
-                            newQ[idx].options[optIdx] = e.target.value;
-                            setQuestionsForm(newQ);
-                          }}
-                          placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 pt-2">
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-success">Correct Answer</label>
-                      <select 
-                        className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm"
-                        value={q.correctAnswer} 
-                        onChange={e => {
-                          const newQ = [...questionsForm];
-                          newQ[idx].correctAnswer = e.target.value;
-                          setQuestionsForm(newQ);
-                        }}
-                        required
-                      >
-                        <option value="">Select Correct Option...</option>
-                        {q.options.map((opt: string, optIdx: number) => (
-                          <option key={optIdx} value={opt} disabled={!opt}>{opt || `Option ${optIdx + 1} (Empty)`}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold">Marks for this Q</label>
-                      <Input 
-                        type="number" 
-                        value={q.marks} 
-                        onChange={e => {
-                          const newQ = [...questionsForm];
-                          newQ[idx].marks = parseInt(e.target.value);
-                          setQuestionsForm(newQ);
-                        }} 
-                      />
-                    </div>
-                  </div>
+                <div>
+                  <label className="text-sm font-semibold block mb-1.5">Duration (mins) *</label>
+                  <input type="number" required value={form.duration} onChange={e => setForm({ ...form, duration: Number(e.target.value) })}
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm" />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold block mb-1.5">Total Marks *</label>
+                  <input type="number" required value={form.totalMarks} onChange={e => setForm({ ...form, totalMarks: Number(e.target.value) })}
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm" />
                 </div>
               </div>
-            ))}
-            
-            {questionsForm.length > 0 && (
-              <Button className="w-full" size="lg" onClick={handleSaveQuestions} disabled={submitting}>
-                {submitting ? "Saving..." : "Save All Questions"}
-              </Button>
-            )}
-            {questionsForm.length === 0 && (
-               <div className="text-center p-8 text-muted-foreground bg-slate-100 rounded-2xl">
-                 Click "Add Question" to start building your quiz.
-               </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* VIEW RESULTS MODAL */}
-      <Dialog open={isResultsOpen} onOpenChange={setIsResultsOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Results: {selectedQuiz?.title}</DialogTitle>
-          </DialogHeader>
-          <div className="mt-4 space-y-4">
-            {selectedQuiz?.attempts?.length === 0 ? (
-              <div className="text-center p-8 text-muted-foreground bg-slate-50 rounded-2xl">
-                No students have attempted this quiz yet.
-              </div>
-            ) : (
-              selectedQuiz?.attempts?.map((attempt: any) => (
-                <div key={attempt.id} className="border rounded-2xl p-4 bg-white flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold">
-                      {attempt.student.user.name.charAt(0)}
+              <div className="border-t pt-4 space-y-6 max-h-[40vh] overflow-y-auto pr-2">
+                <h3 className="font-bold text-sm text-slate-500 uppercase tracking-wider">Questions</h3>
+                
+                {questions.map((q, qIndex) => (
+                  <div key={qIndex} className="bg-slate-50 border rounded-2xl p-4 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-primary">Q{qIndex + 1}</span>
+                      {questions.length > 1 && (
+                        <button type="button" onClick={() => setQuestions(questions.filter((_, i) => i !== qIndex))}
+                          className="text-red-500 text-xs font-bold hover:underline">Remove</button>
+                      )}
                     </div>
+                    
+                    <input required value={q.questionText} onChange={e => {
+                        const newQ = [...questions]; newQ[qIndex].questionText = e.target.value; setQuestions(newQ);
+                      }}
+                      className="w-full border rounded-lg px-3 py-2 text-sm font-medium" placeholder="Question text..." />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {q.options.map((opt, oIndex) => (
+                        <div key={oIndex} className="flex items-center gap-2">
+                          <input type="radio" name={`correct-${qIndex}`} checked={q.correctAnswer === oIndex}
+                            onChange={() => {
+                              const newQ = [...questions]; newQ[qIndex].correctAnswer = oIndex; setQuestions(newQ);
+                            }}
+                            className="w-4 h-4 text-primary"
+                          />
+                          <input required value={opt} onChange={e => {
+                              const newQ = [...questions]; newQ[qIndex].options[oIndex] = e.target.value; setQuestions(newQ);
+                            }}
+                            className="flex-1 border rounded-lg px-3 py-1.5 text-sm" placeholder={`Option ${oIndex + 1}`} />
+                        </div>
+                      ))}
+                    </div>
+                    
                     <div>
-                      <h4 className="font-bold">{attempt.student.user.name}</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Submitted: {new Date(attempt.submittedAt).toLocaleString()}
-                      </p>
+                      <label className="text-xs font-semibold text-muted-foreground mr-2">Marks for this question:</label>
+                      <input type="number" value={q.marks} onChange={e => {
+                          const newQ = [...questions]; newQ[qIndex].marks = Number(e.target.value); setQuestions(newQ);
+                        }}
+                        className="w-20 border rounded-md px-2 py-1 text-xs" />
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-xl font-bold text-success">{attempt.score}</div>
-                    <div className="text-xs text-muted-foreground">out of {selectedQuiz.totalMarks}</div>
-                  </div>
-                </div>
-              ))
-            )}
+                ))}
+
+                <button type="button" onClick={() => setQuestions([...questions, { questionText: "", options: ["", "", "", ""], correctAnswer: 0, marks: 10 }])}
+                  className="w-full border-2 border-dashed border-primary/30 text-primary font-bold py-3 rounded-2xl hover:bg-primary/5 transition-colors text-sm">
+                  + Add Another Question
+                </button>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowCreate(false)}
+                  className="flex-1 border text-slate-600 font-semibold py-2.5 rounded-xl hover:bg-slate-50 text-sm">Cancel</button>
+                <button type="submit" disabled={submitting}
+                  className="flex-1 bg-primary text-white font-bold py-2.5 rounded-xl hover:bg-primary/90 text-sm flex items-center justify-center gap-2">
+                  {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : "Save Quiz"}
+                </button>
+              </div>
+            </form>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
+
+      {/* View Results Modal */}
+      {showView && selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-7 animate-in zoom-in-95">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-bold font-heading">Results: {selected.title}</h2>
+              <button onClick={() => setShowView(false)} className="text-muted-foreground hover:text-foreground font-bold text-lg">✕</button>
+            </div>
+            <div className="space-y-4">
+              {(selected.attempts || []).length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground bg-slate-50 rounded-2xl">No attempts yet.</div>
+              ) : (
+                (selected.attempts || []).map((att: any) => (
+                  <div key={att.id} className="border rounded-2xl p-4 flex items-center justify-between bg-slate-50 hover:bg-white transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold">
+                        {att.student?.user?.name?.charAt(0) || "S"}
+                      </div>
+                      <div>
+                        <div className="font-bold">{att.student?.user?.name}</div>
+                        <div className="text-xs text-muted-foreground">{new Date(att.startTime).toLocaleString("en-IN")}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-primary">{att.score} <span className="text-sm text-muted-foreground font-normal">/ {selected.totalMarks}</span></div>
+                      <Badge variant="outline" className="bg-success/10 text-success border-success/20 mt-1">Completed</Badge>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

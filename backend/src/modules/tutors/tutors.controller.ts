@@ -38,7 +38,7 @@ export class TutorsController {
 
   @UseGuards(JwtAuthGuard)
   @Post('bookings')
-  scheduleClass(@Request() req: any, @Body() body: { title: string; studentName: string; time: string }) {
+  scheduleClass(@Request() req: any, @Body() body: { studentId: string; subject: string; scheduledAt: string; duration: number; location?: string; notes?: string }) {
     return this.tutorsService.scheduleClass(req.user.userId, body);
   }
 
@@ -94,6 +94,12 @@ export class TutorsController {
   @Get('attendance')
   getAttendance(@Request() req: any) {
     return this.tutorsService.getAttendance(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('attendance/:studentId')
+  getStudentAttendance(@Request() req: any, @Param('studentId') studentId: string) {
+    return this.tutorsService.getStudentAttendance(req.user.userId, studentId);
   }
 
   @UseGuards(JwtAuthGuard)
