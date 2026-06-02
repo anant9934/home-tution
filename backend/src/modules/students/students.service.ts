@@ -33,7 +33,6 @@ export class StudentsService {
         bookings: {
           where: { scheduledAt: { gte: new Date() } },
           orderBy: { scheduledAt: 'asc' },
-          take: 3,
           include: { tutor: { include: { user: true } } }
         },
         assignedTutor: {
@@ -142,7 +141,7 @@ export class StudentsService {
       upcomingClasses: student.bookings.map(b => ({
         id: b.id,
         title: b.bookingType === 'ONE_ON_ONE' ? '1-on-1 Class' : 'Group Batch',
-        time: b.scheduledAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        scheduledAt: b.scheduledAt.toISOString(),
         tutor: b.tutor.user.name,
         meetingLink: b.meetingLink
       })),

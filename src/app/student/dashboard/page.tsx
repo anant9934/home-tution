@@ -75,7 +75,7 @@ export default function StudentDashboardPage() {
   }
 
   return (
-    <div className="space-y-8 pb-20 lg:pb-8 relative">
+    <div className="space-y-8 pb-20 lg:pb-8 relative min-h-screen mesh-bg p-4 lg:p-8 rounded-3xl">
       
       {/* SUCCESS TOAST FOR GAMIFICATION */}
       {showXpToast && (
@@ -146,21 +146,42 @@ export default function StudentDashboardPage() {
          </div>
       </div>
       
+      {/* SUMMARY CARDS */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 relative z-10">
+         {[
+           { label: "XP Points", value: xp, icon: Trophy, color: "text-amber-500", bg: "bg-amber-500/10" },
+           { label: "Streak", value: `${data.streak} Days`, icon: Flame, color: "text-orange-500", bg: "bg-orange-500/10" },
+           { label: "Enrolled", value: data.enrolledCourses?.length || 0, icon: BookOpen, color: "text-primary", bg: "bg-primary/10" },
+           { label: "Tasks", value: pendingTasks.length, icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10" }
+         ].map((stat, i) => (
+           <div key={i} className="glass-card rounded-2xl p-5 hover-lift">
+             <div className="flex items-center gap-3 mb-4">
+               <div className={`w-10 h-10 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center`}>
+                 <stat.icon className="w-5 h-5" />
+               </div>
+               <div className="text-sm font-semibold text-muted-foreground">{stat.label}</div>
+             </div>
+             <div className="text-2xl font-bold font-heading">{stat.value}</div>
+           </div>
+         ))}
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
          
          {/* LEFT COLUMN: COURSES & PENDING TASKS */}
          <div className="lg:col-span-2 space-y-8">
             
             {/* PENDING TASKS SECTION */}
-            <div className="space-y-4">
-               <h2 className="text-xl font-bold font-heading flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-primary" /> Pending Tasks
-               </h2>
+            <div className="glass-card rounded-3xl p-6">
+               <div className="flex justify-between items-center mb-6">
+                 <h3 className="font-bold font-heading">Pending Tasks</h3>
+                 <Badge variant="secondary" className="rounded-xl">{pendingTasks.length}</Badge>
+               </div>
                
                {pendingTasks.length > 0 ? (
                   <div className="grid gap-4">
                      {pendingTasks.map((task: any) => (
-                        <div key={task.id} className="bg-white rounded-2xl border shadow-sm p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div key={task.id} className="flex items-center justify-between p-4 border border-white/20 rounded-2xl bg-white/40 hover:bg-white/60 transition-colors">
                            <div className="flex items-center gap-4">
                               <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${task.type === "Quiz" ? "bg-warning/10" : "bg-primary/10"}`}>
                                  <FileText className={`w-6 h-6 ${task.type === "Quiz" ? "text-warning" : "text-primary"}`} />
@@ -225,15 +246,14 @@ export default function StudentDashboardPage() {
          </div>
          
          {/* RIGHT COLUMN: SCHEDULE & ACHIEVEMENTS */}
-         <div className="space-y-8">
+         <div className="space-y-6">
             
              {/* MY TUTOR CARD */}
-             <div className="bg-white rounded-3xl border shadow-sm overflow-hidden">
-               <div className="bg-gradient-to-r from-primary/10 to-violet-500/10 p-4 flex items-center justify-between">
-                 <h3 className="font-bold font-heading flex items-center gap-2">
-                   <UserSearch className="w-5 h-5 text-primary" /> My Tutor
-                 </h3>
-               </div>
+             <div className="glass-card-premium rounded-3xl p-6 relative overflow-hidden group">
+               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 group-hover:bg-primary/20 transition-all duration-500"></div>
+               <h3 className="font-bold font-heading mb-4 relative z-10 flex items-center gap-2">
+                 <UserSearch className="w-5 h-5 text-primary" /> My Tutor
+               </h3>
                {data.assignedTutor ? (
                  <div className="p-5 space-y-3">
                    <div className="flex items-center gap-3">
@@ -280,19 +300,20 @@ export default function StudentDashboardPage() {
              </div>
 
             {/* UPCOMING CLASSES */}
-            <div className="bg-white rounded-3xl border shadow-sm p-6">
-               <h3 className="font-bold font-heading mb-4 flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-primary" /> Upcoming Classes
-               </h3>
+            <div className="glass-card rounded-3xl p-6">
+               <div className="flex justify-between items-center mb-6">
+                 <h3 className="font-bold font-heading">Today's Classes</h3>
+                 <Button variant="ghost" size="sm" className="text-primary h-8 px-3 rounded-xl text-xs font-bold">View All</Button>
+               </div>
                <div className="space-y-4">
                   {data.upcomingClasses.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No upcoming classes</p>
                   ) : (
                     data.upcomingClasses.map((cls: any) => (
-                       <div key={cls.id} className="p-4 rounded-2xl border bg-slate-50 relative overflow-hidden group">
-                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+                       <div key={cls.id} className="p-4 rounded-2xl border border-white/30 bg-white/50 relative overflow-hidden group hover:shadow-md transition-all hover-lift">
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary group-hover:w-1.5 transition-all"></div>
                           <h4 className="font-bold text-sm mb-1">{cls.title}</h4>
-                          <div className="text-xs text-muted-foreground mb-3">{cls.time} • {cls.tutor}</div>
+                          <div className="text-xs text-muted-foreground mb-3">{new Date(cls.scheduledAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })} • {cls.tutor}</div>
                           <Button 
                              size="sm" 
                              onClick={() => setActiveMeeting(cls)}
@@ -307,7 +328,7 @@ export default function StudentDashboardPage() {
             </div>
 
             {/* ACHIEVEMENTS */}
-            <div className="bg-white rounded-3xl border shadow-sm p-6">
+            <div className="glass-card rounded-3xl p-6">
                <h3 className="font-bold font-heading mb-4 flex items-center gap-2">
                   <Trophy className="w-5 h-5 text-warning" /> Recent Badges
                </h3>
@@ -315,8 +336,8 @@ export default function StudentDashboardPage() {
                   {achievements.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Keep learning to earn badges!</p>
                   ) : (
-                    achievements.map((badge, i) => (
-                       <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-warning/20 bg-warning/5 animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${i * 100}ms`, animationFillMode: "both" }}>
+                    achievements.map((badge: string, i: number) => (
+                       <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-warning/20 bg-warning/5 hover-lift">
                           <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center shrink-0">
                              <CheckCircle2 className="w-6 h-6 text-warning" />
                           </div>

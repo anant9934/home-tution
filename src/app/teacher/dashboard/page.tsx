@@ -168,7 +168,7 @@ export default function TeacherDashboardPage() {
   }
 
   return (
-    <div className="space-y-8 pb-20 lg:pb-8 relative">
+    <div className="space-y-8 pb-20 lg:pb-8 relative min-h-screen mesh-bg p-4 lg:p-8 rounded-3xl">
       
       {/* VIRTUAL CLASSROOM MODAL */}
       {activeMeeting && (
@@ -340,24 +340,22 @@ export default function TeacherDashboardPage() {
       </div>
       
       {/* SUMMARY WIDGETS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 relative z-10">
          {[
            { label: "Active Students", value: data.stats.totalStudents, icon: Users, color: "text-primary", bg: "bg-primary/10" },
            { label: "Today's Classes", value: data.stats.todaysClasses, icon: Clock, color: "text-warning", bg: "bg-warning/10" },
            { label: "Earnings (Month)", value: data.stats.monthlyEarnings, icon: IndianRupee, color: "text-success", bg: "bg-success/10" },
            { label: "Pending Tasks", value: data.stats.pendingTasksCount, icon: Star, color: "text-primary", bg: "bg-primary/10" },
          ].map((stat, i) => (
-           <Card key={i} className="rounded-2xl border shadow-sm transition-all duration-300">
-             <CardContent className="p-5">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`w-10 h-10 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center`}>
-                     <stat.icon className="w-5 h-5" />
-                  </div>
-                  <div className="text-sm font-semibold text-muted-foreground">{stat.label}</div>
+           <div key={i} className="glass-card rounded-2xl p-5 hover-lift">
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`w-10 h-10 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center`}>
+                   <stat.icon className="w-5 h-5" />
                 </div>
-                <div className="text-2xl font-bold font-heading mb-1">{stat.value}</div>
-             </CardContent>
-           </Card>
+                <div className="text-sm font-semibold text-muted-foreground">{stat.label}</div>
+              </div>
+              <div className="text-2xl font-bold font-heading mb-1">{stat.value}</div>
+           </div>
          ))}
       </div>
 
@@ -366,7 +364,7 @@ export default function TeacherDashboardPage() {
          {/* LEFT COLUMN: SCHEDULE */}
          <div className="lg:col-span-2 space-y-6">
             
-            <div className="bg-white rounded-3xl border shadow-sm p-6">
+            <div className="glass-card rounded-3xl p-6">
                <div className="flex justify-between items-center mb-6">
                   <h3 className="font-bold font-heading flex items-center gap-2">
                      <Calendar className="w-5 h-5 text-primary" /> Today's Schedule
@@ -379,9 +377,9 @@ export default function TeacherDashboardPage() {
                     <p className="text-sm text-muted-foreground text-center py-4">You have no classes scheduled for today.</p>
                   ) : (
                     data.schedule.map((cls: any, i: number) => (
-                       <div key={cls.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border rounded-2xl bg-slate-50 animate-in slide-in-from-bottom-4 fade-in duration-300" style={{ animationDelay: `${i * 100}ms`, animationFillMode: "both" }}>
+                       <div key={cls.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border border-white/20 rounded-2xl bg-white/40 hover:bg-white/60 hover-lift transition-all animate-in slide-in-from-bottom-4 fade-in duration-300" style={{ animationDelay: `${i * 100}ms`, animationFillMode: "both" }}>
                           <div className="flex items-start gap-4">
-                             <div className="w-12 h-12 rounded-xl bg-white border flex items-center justify-center shrink-0">
+                             <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center shrink-0">
                                 <Video className="w-5 h-5 text-primary" />
                              </div>
                              <div>
@@ -392,27 +390,28 @@ export default function TeacherDashboardPage() {
                                 </div>
                              </div>
                           </div>
-                          <Button onClick={() => setActiveMeeting(cls)} className="shrink-0 rounded-xl">Start Class</Button>
+                          <Button onClick={() => setActiveMeeting(cls)} className="shrink-0 rounded-xl shadow-lg shadow-primary/20">Start Class</Button>
                        </div>
                     ))
                   )}
                </div>
             </div>
 
-            <div className="bg-white rounded-3xl border shadow-sm p-6">
-               <h3 className="font-bold font-heading mb-6">Revenue This Week</h3>
+            <div className="glass-card-premium rounded-3xl p-6 relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-32 h-32 bg-success/20 rounded-full blur-2xl -translate-y-1/2 -translate-x-1/2"></div>
+               <h3 className="font-bold font-heading mb-6 relative z-10">Revenue This Week</h3>
                {weeklyData.length > 0 ? (
-                 <div className="h-64 flex items-end justify-between gap-2 border-b border-l pb-2 pl-2">
+                 <div className="h-64 flex items-end justify-between gap-2 border-b border-white/20 pb-2 pl-2 relative z-10">
                    {weeklyData.map((d, i) => {
                      const max = Math.max(...weeklyData.map(x => x.amount), 1);
                      const pct = Math.max((d.amount / max) * 100, d.amount > 0 ? 8 : 4);
                      return (
                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
                          <div
-                           className="w-full bg-success/20 rounded-t-md hover:bg-success/40 transition-colors relative group cursor-pointer"
+                           className="w-full bg-success/30 rounded-t-md hover:bg-success/50 transition-colors relative group cursor-pointer"
                            style={{ height: `${pct}%` }}
                          >
-                           <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg">
+                           <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg z-20">
                              ₹{d.amount.toLocaleString()}
                            </div>
                          </div>
@@ -422,7 +421,7 @@ export default function TeacherDashboardPage() {
                    })}
                  </div>
                ) : (
-                 <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
+                 <div className="h-64 flex items-center justify-center text-muted-foreground text-sm relative z-10">
                    No completed classes yet this week.
                  </div>
                )}
@@ -433,23 +432,23 @@ export default function TeacherDashboardPage() {
          {/* RIGHT COLUMN: PENDING TASKS */}
          <div className="space-y-8">
             
-            <div className="bg-white rounded-3xl border shadow-sm p-6">
+            <div className="glass-card rounded-3xl p-6">
                <h3 className="font-bold font-heading mb-4">Pending Actions</h3>
                
                <div className="space-y-4 overflow-hidden">
                   {data.actionRequired.map((req: any) => (
-                    <div key={req.id} className="p-4 border rounded-2xl bg-white transition-all duration-300">
+                    <div key={req.id} className="p-4 border border-white/20 rounded-2xl bg-white/40 transition-all duration-300 hover-lift">
                        <div className="flex justify-between items-start mb-2">
                           <div className="font-bold text-sm">{req.title}</div>
-                          <Badge variant="outline" className={req.type === 'Demo' ? 'bg-warning/5 text-warning border-warning/20' : 'bg-primary/5 text-primary border-primary/20'}>{req.type}</Badge>
+                          <Badge variant="outline" className={req.type === 'Demo' ? 'bg-warning/20 text-amber-600 border-warning/30 shadow-sm' : 'bg-primary/20 text-primary border-primary/30 shadow-sm'}>{req.type}</Badge>
                        </div>
                        <div className="text-xs text-muted-foreground mb-4">{req.desc}</div>
                        
                        <div className="flex gap-2">
-                          <Button size="sm" onClick={() => handleAction(req, "approve")} className="flex-1 rounded-xl gap-1 bg-success hover:bg-success/90 text-white">
+                          <Button size="sm" onClick={() => handleAction(req, "approve")} className="flex-1 rounded-xl gap-1 bg-success hover:bg-success/90 text-white shadow-lg shadow-success/20">
                              <CheckCircle2 className="w-4 h-4" /> Accept
                           </Button>
-                          <Button size="sm" onClick={() => handleAction(req, "reject")} variant="outline" className="rounded-xl px-3 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30">
+                          <Button size="sm" onClick={() => handleAction(req, "reject")} variant="outline" className="rounded-xl px-3 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 bg-white/50 border-white/50">
                              <XCircle className="w-4 h-4" />
                           </Button>
                        </div>
@@ -457,7 +456,7 @@ export default function TeacherDashboardPage() {
                   ))}
                   
                   {data.actionRequired.length === 0 && (
-                     <div className="text-center py-6 border-2 border-dashed rounded-2xl animate-in fade-in zoom-in-95 duration-500">
+                     <div className="text-center py-6 border-2 border-dashed border-white/30 bg-white/20 rounded-2xl animate-in fade-in zoom-in-95 duration-500">
                         <CheckCircle2 className="w-8 h-8 text-success/50 mx-auto mb-2" />
                         <p className="text-sm text-muted-foreground">All caught up! No pending requests.</p>
                      </div>

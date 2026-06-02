@@ -162,3 +162,64 @@
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ---------------------------------------------------------
+   RICH AESTHETICS - GLASSMORPHISM & ANIMATIONS
+   --------------------------------------------------------- */
+
+.glass-panel {
+  @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:bg-slate-900/70 dark:border-slate-800/50;
+}
+
+.glass-card {
+  @apply bg-white/60 backdrop-blur-lg border border-white/30 shadow-[0_4px_24px_rgba(0,0,0,0.02)] transition-all duration-300 hover:shadow-[0_8px_32px_rgba(91,77,255,0.08)] hover:-translate-y-1 hover:bg-white/80 dark:bg-slate-900/60 dark:border-slate-800/40 dark:hover:bg-slate-900/80;
+}
+
+.glass-card-premium {
+  @apply bg-gradient-to-br from-white/80 to-white/40 backdrop-blur-2xl border border-white/50 shadow-xl transition-all duration-500 hover:shadow-2xl hover:-translate-y-1.5 dark:from-slate-900/80 dark:to-slate-900/40 dark:border-slate-800/50;
+}
+
+.mesh-bg {
+  background-color: var(--background);
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(253,100%,94%,1) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, hsla(225,100%,95%,1) 0, transparent 50%), 
+    radial-gradient(at 100% 100%, hsla(339,100%,96%,1) 0, transparent 50%), 
+    radial-gradient(at 0% 100%, hsla(188,100%,94%,1) 0, transparent 50%);
+}
+
+.dark .mesh-bg {
+  background-color: var(--background);
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(253,50%,15%,1) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, hsla(225,40%,15%,1) 0, transparent 50%), 
+    radial-gradient(at 100% 100%, hsla(339,30%,15%,1) 0, transparent 50%), 
+    radial-gradient(at 0% 100%, hsla(188,30%,15%,1) 0, transparent 50%);
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-violet-500;
+}
+
+.hover-lift {
+  @apply transition-transform duration-300 hover:-translate-y-1;
+}
+
+.pulse-glow {
+  animation: pulseGlow 3s infinite alternate;
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 10px rgba(91, 77, 255, 0.1); }
+  100% { box-shadow: 0 0 25px rgba(91, 77, 255, 0.4); }
+}
+
+.float-animation {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}

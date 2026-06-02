@@ -399,7 +399,7 @@ export class TutorsService {
         quizId,
         questionText: q.questionText,
         options: q.options, // Should be an array of strings like ["A", "B", "C", "D"]
-        correctAnswer: q.correctAnswer,
+        correctAnswer: String(q.correctAnswer),
         marks: Number(q.marks || 1)
       }))
     });
